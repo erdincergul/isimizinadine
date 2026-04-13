@@ -216,7 +216,7 @@ input::placeholder,textarea::placeholder{color:var(--mut)}
   <button class="tab" onclick="goTab('guzergah',this)">🗺️ Güzergah</button>
   <button class="tab" onclick="goTab('notlar',this)">💬 Notlar</button>
   <button class="tab" onclick="goTab('ayarlar',this)">⚙️ Ayarlar</button>
-  <button class="tab" onclick="goTab('oneriler',this)">🍽️ Öneriler</button>
+  <button class="tab" onclick="goTab('mekanlar',this)">⭐ Mekanlar</button>
 </div>
 
 <div class="main">
@@ -303,29 +303,31 @@ input::placeholder,textarea::placeholder{color:var(--mut)}
   </div>
 
   <!-- ÖNERİLER -->
-  <div id="p-oneriler" class="panel">
+  <div id="p-mekanlar" class="panel">
     <div class="card">
-      <div class="ctitle">🍽️ Yakın Çevrede Ne Yenir?</div>
-      <p style="font-size:12px;color:var(--mut);margin-bottom:12px">Haritadan bir bölge seçin veya mevcut konumunuzu kullanın. En iyi restoranlar, kafeler ve yemek yerleri listelensin.</p>
-      <div style="display:flex;gap:8px;margin-bottom:10px">
-        <select id="oneriKategori" style="flex:1">
-          <option value="restaurant">🍽️ Restoran</option>
-          <option value="cafe">☕ Kafe</option>
-          <option value="fast_food">🍔 Fast Food</option>
-          <option value="kebab">🥙 Kebapçı</option>
-          <option value="bakery">🥐 Fırın</option>
-          <option value="bar">🍺 Bar</option>
-          <option value="food">🥘 Tüm Yemek</option>
-        </select>
+      <div class="ctitle">⭐ Mekan Ekle</div>
+      <input type="text" id="mekanAdi" placeholder="Mekan adı (örn: Adem Usta Pidecisi)" style="margin-bottom:8px">
+      <select id="mekanTip" style="margin-bottom:8px">
+        <option value="🍽️">🍽️ Restoran</option>
+        <option value="☕">☕ Kafe</option>
+        <option value="🏨">🏨 Otel / Konaklama</option>
+        <option value="🏛️">🏛️ Tarihi Yer</option>
+        <option value="🏖️">🏖️ Plaj / Doğa</option>
+        <option value="🛍️">🛍️ Alışveriş</option>
+        <option value="🎡">🎡 Eğlence</option>
+        <option value="📍">📍 Diğer</option>
+      </select>
+      <div style="margin-bottom:8px">
+        <div style="font-size:11px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Puanınız</div>
+        <div id="starRow" style="display:flex;gap:8px">
+          ${[1,2,3,4,5].map(s=>`<button onclick="setMekanStar(${s})" id="star${s}" style="font-size:28px;background:none;border:none;cursor:pointer;padding:2px;opacity:0.3;transition:all .15s">⭐</button>`).join('')}
+        </div>
       </div>
-      <div style="display:flex;gap:8px;margin-bottom:10px">
-        <input type="text" id="oneriSehir" placeholder="Şehir veya bölge (örn: Kastamonu)" style="flex:1">
-        <button onclick="searchOneri()" style="background:var(--acc);border:none;color:#fff;padding:11px 14px;border-radius:10px;font-size:14px;cursor:pointer;flex-shrink:0;font-family:'Syne',sans-serif;font-weight:700">Ara</button>
-      </div>
-      <button class="btn-sec" onclick="oneriKonumdan()" style="margin-top:0">📍 Mevcut Konumumdan Ara</button>
+      <textarea id="mekanYorum" placeholder="Yorumunuz... (isteğe bağlı)" rows="2" style="margin-bottom:8px"></textarea>
+      <button class="btn-primary" onclick="addMekan()">Ekle</button>
     </div>
-    <div id="oneriMap" style="height:220px;border-radius:12px;overflow:hidden;margin-bottom:12px;border:1px solid var(--bd);display:none"></div>
-    <div id="oneriSonuclar"></div>
+    <div class="slabel">Ziyaret Edilen Mekanlar <span class="stag" id="mekanCnt">0</span></div>
+    <div id="mekanList"></div>
   </div>
 
   <!-- AYARLAR -->
@@ -354,6 +356,10 @@ input::placeholder,textarea::placeholder{color:var(--mut)}
     <div class="danger-zone">
       <p>⚠️ Tüm masraflar silinir. Geri alınamaz.</p>
       <button class="btn-reset" onclick="resetExpenses()">🗑️ Masrafları Sıfırla</button>
+    </div>
+    <div style="text-align:center;margin-top:24px;padding:16px">
+      <div style="font-size:11px;color:var(--mut);font-family:'DM Mono',monospace;letter-spacing:1px">made by</div>
+      <div style="font-size:16px;font-weight:800;color:var(--acc);margin-top:4px;letter-spacing:-0.5px">Erdinç Ergül</div>
     </div>
   </div>
 
@@ -749,9 +755,65 @@ function openExpModal(idx) {
         <div class="mir"><span class="mil">Tür</span><span class="miv">${e.sahsi?'🙋 Şahsi':'👥 Ortak'}</span></div>
         <div class="mir"><span class="mil">Tarih</span><span class="miv" style="font-family:'DM Mono',monospace">${e.tarih}</span></div>
       </div>
-      ${e.katilimci_id===mySession?.katilimciId?`<button onclick="delExp(${e.id});closeModal();" class="btn-reset">🗑️ Sil</button>`:''}
+      ${e.katilimci_id===mySession?.katilimciId?`
+        <button onclick="openEditExp(${idx})" style="width:100%;padding:12px;background:var(--sf2);color:var(--txt);border:1px solid var(--bd);border-radius:12px;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:8px">✏️ Düzenle</button>
+        <button onclick="delExp(${e.id});closeModal();" class="btn-reset">🗑️ Sil</button>`:''}
     </div>
   </div>`;
+}
+
+function openEditExp(idx) {
+  const e = masraflar[idx]; if(!e) return;
+  const kIdx = katilimcilar.findIndex(k=>k.id===e.katilimci_id);
+  closeModal();
+  document.getElementById('modal').style.display='block';
+  document.getElementById('modal').innerHTML=`<div class="modal-overlay" onclick="closeModal()">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-hdr">
+        <div class="modal-title">✏️ Masrafı Düzenle</div>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div class="field" style="margin-bottom:10px">
+        <label style="font-size:11px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:block">Açıklama</label>
+        <input class="finput" type="text" id="editDesc" value="${e.aciklama}" style="background:var(--sf2);border:1px solid var(--bd);border-radius:10px;color:var(--txt);font-family:'Syne',sans-serif;font-size:14px;padding:11px 14px;outline:none;width:100%">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+        <div>
+          <label style="font-size:11px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:block">Tutar</label>
+          <input class="finput" type="number" id="editAmt" value="${e.amount}" style="background:var(--sf2);border:1px solid var(--bd);border-radius:10px;color:var(--txt);font-family:'Syne',sans-serif;font-size:14px;padding:11px 14px;outline:none;width:100%">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:block">Kategori</label>
+          <select id="editCat" style="background:var(--sf2);border:1px solid var(--bd);border-radius:10px;color:var(--txt);font-family:'Syne',sans-serif;font-size:14px;padding:11px 14px;outline:none;width:100%;-webkit-appearance:none">
+            ${['⛽ Akaryakıt','🍽️ Yemek','🏨 Konaklama','🎟️ Aktivite','🛒 Market','🅿️ Park/Otoban','☕ Kafe','📦 Diğer'].map(c=>`<option ${e.cat===c?'selected':''}>${c}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div style="margin-bottom:12px">
+        <label style="font-size:11px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:block">Kim Ödedi?</label>
+        <select id="editWho" style="background:var(--sf2);border:1px solid var(--bd);border-radius:10px;color:var(--txt);font-family:'Syne',sans-serif;font-size:14px;padding:11px 14px;outline:none;width:100%;-webkit-appearance:none">
+          ${katilimcilar.map((k,i)=>`<option value="${k.id}" ${k.id===e.katilimci_id?'selected':''}>${k.isim}</option>`).join('')}
+        </select>
+      </div>
+      <button onclick="saveEditExp(${e.id})" style="width:100%;padding:14px;background:var(--acc);color:#fffdf6;border:none;border-radius:12px;font-family:'Syne',sans-serif;font-size:15px;font-weight:800;cursor:pointer">💾 Kaydet</button>
+    </div>
+  </div>`;
+}
+
+async function saveEditExp(id) {
+  const aciklama = document.getElementById('editDesc').value.trim();
+  const amount = parseFloat(document.getElementById('editAmt').value);
+  const cat = document.getElementById('editCat').value;
+  const katilimci_id = parseInt(document.getElementById('editWho').value);
+  if(!aciklama||!amount||amount<=0) { showToast('⚠️ Açıklama ve tutar girin!'); return; }
+  try {
+    await sbPatch('masraflar', `id=eq.${id}`, {aciklama, amount, cat, katilimci_id});
+    const exp = masraflar.find(e=>e.id===id);
+    if(exp) { exp.aciklama=aciklama; exp.amount=amount; exp.cat=cat; exp.katilimci_id=katilimci_id; }
+    closeModal();
+    renderExpList(); renderHeader();
+    showToast('✅ Masraf güncellendi!');
+  } catch(e) { showToast('❌ '+e.message); }
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1123,6 +1185,85 @@ function toggleSahsi(){
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━
+// MEKANLAR
+// ━━━━━━━━━━━━━━━━━━━━━━━━
+let mekanlar = [];
+let selectedStar = 0;
+
+function setMekanStar(s) {
+  selectedStar = s;
+  [1,2,3,4,5].forEach(i => {
+    const btn = document.getElementById('star'+i);
+    if(btn) btn.style.opacity = i<=s ? '1' : '0.3';
+  });
+}
+
+async function loadMekanlar() {
+  if(!mySession) return;
+  try {
+    mekanlar = await sbGet('mekanlar', `trip_id=eq.${mySession.tripId}&order=created_at.desc`);
+  } catch(e) { mekanlar = []; }
+}
+
+function renderMekanlar() {
+  loadMekanlar().then(() => {
+    document.getElementById('mekanCnt').textContent = mekanlar.length;
+    if(!mekanlar.length) {
+      document.getElementById('mekanList').innerHTML = '<div class="empty"><div class="ico">⭐</div><p>Henüz mekan eklenmedi.<br>Gittiğiniz yerleri değerlendirin!</p></div>';
+      return;
+    }
+    document.getElementById('mekanList').innerHTML = mekanlar.map(m => {
+      const k = katilimcilar.find(k=>k.id===m.katilimci_id);
+      const stars = '⭐'.repeat(m.puan) + '☆'.repeat(5-m.puan);
+      const isOwner = m.katilimci_id === mySession?.katilimciId;
+      return `<div style="background:var(--sf);border:1px solid var(--bd);border-radius:14px;padding:15px 16px;margin-bottom:10px;animation:fadeUp .25s ease">
+        <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:8px">
+          <div style="font-size:24px;flex-shrink:0">${m.tip}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:15px;font-weight:700">${m.isim}</div>
+            <div style="font-size:13px;color:var(--acc);margin-top:2px;letter-spacing:1px">${stars}</div>
+          </div>
+          ${isOwner?`<button onclick="delMekan(${m.id})" style="background:none;border:none;color:var(--mut);font-size:14px;cursor:pointer;padding:4px">✕</button>`:''}
+        </div>
+        ${m.yorum?`<div style="font-size:13px;color:var(--txt);line-height:1.5;background:var(--sf2);border-radius:8px;padding:10px 12px;margin-bottom:6px">"${m.yorum}"</div>`:''}
+        <div style="font-size:10px;color:var(--mut);font-family:'DM Mono',monospace">${k?.isim||'?'} · ${new Date(m.created_at).toLocaleDateString('tr-TR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</div>
+      </div>`;
+    }).join('');
+  });
+}
+
+async function addMekan() {
+  const isim = document.getElementById('mekanAdi').value.trim();
+  const tip = document.getElementById('mekanTip').value;
+  const yorum = document.getElementById('mekanYorum').value.trim();
+  const puan = selectedStar;
+  if(!isim) { showToast('⚠️ Mekan adı girin!'); return; }
+  if(!puan) { showToast('⚠️ Puan verin!'); return; }
+  try {
+    const rows = await sbPost('mekanlar', {
+      trip_id: mySession.tripId,
+      katilimci_id: mySession.katilimciId,
+      isim, tip, yorum, puan
+    });
+    mekanlar.unshift(rows[0]);
+    document.getElementById('mekanAdi').value='';
+    document.getElementById('mekanYorum').value='';
+    selectedStar=0;
+    setMekanStar(0);
+    renderMekanlar();
+    showToast('⭐ Mekan eklendi!');
+  } catch(e) { showToast('❌ '+e.message); }
+}
+
+async function delMekan(id) {
+  if(!confirm('Bu mekanı silmek istediğinize emin misiniz?')) return;
+  await sbDelete('mekanlar',`id=eq.${id}`);
+  mekanlar = mekanlar.filter(m=>m.id!==id);
+  renderMekanlar();
+  showToast('🗑️ Silindi');
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━
 // ÖNERİLER
 // ━━━━━━━━━━━━━━━━━━━━━━━━
 let oneriMap = null;
@@ -1308,7 +1449,7 @@ function goTab(name,btn){
   if(name==='guzergah') renderPlaces();
   if(name==='notlar') renderNotes();
   if(name==='ayarlar') renderSettings();
-  if(name==='oneriler') initOneriMap();
+  if(name==='mekanlar') renderMekanlar();
 }
 function closeModal(){document.getElementById('modal').style.display='none';document.getElementById('modal').innerHTML='';}
 function sync(s,t){document.getElementById('sdot').className='sdot '+s;document.getElementById('stxt').textContent=t;}
