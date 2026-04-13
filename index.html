@@ -1,0 +1,1366 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>İşimizin Adı Ne? 🚗</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+:root{--bg:#f2ece0;--sf:#fffdf6;--sf2:#ede6d6;--bd:#d8cfba;--acc:#b07d2a;--red:#b8402a;--grn:#2d7a4f;--txt:#26200f;--mut:#8a7a5e;--r:14px}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;max-width:480px;margin:0 auto}
+
+/* GİRİŞ EKRANI */
+.screen{position:fixed;inset:0;background:linear-gradient(160deg,#f5edd8,#e8dcc8 50%,#d4c5a9);z-index:500;display:flex;align-items:center;justify-content:center;padding:24px}
+.screen-card{background:var(--sf);border:1px solid var(--bd);border-radius:24px;padding:36px 28px;width:100%;max-width:380px;box-shadow:0 8px 40px #0000001a}
+.screen-logo{font-size:56px;text-align:center;margin-bottom:12px}
+.screen-title{font-size:24px;font-weight:800;color:var(--acc);text-align:center;margin-bottom:6px;letter-spacing:-.5px}
+.screen-sub{font-size:13px;color:var(--mut);text-align:center;margin-bottom:28px;line-height:1.6}
+.field{margin-bottom:16px}
+.field label{font-size:11px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;display:block}
+.finput{background:var(--sf2);border:1.5px solid var(--bd);border-radius:12px;color:var(--txt);font-family:'Syne',sans-serif;font-size:15px;padding:14px 16px;outline:none;width:100%;transition:all .2s;-webkit-appearance:none}
+.finput:focus{border-color:var(--acc);background:var(--sf);box-shadow:0 0 0 3px #b07d2a18}
+.finput::placeholder{color:var(--mut)}
+.finput.code{font-family:'DM Mono',monospace;font-size:22px;letter-spacing:4px;text-align:center;text-transform:uppercase}
+.sbtn{width:100%;padding:15px;background:var(--acc);color:#fffdf6;border:none;border-radius:14px;font-family:'Syne',sans-serif;font-size:16px;font-weight:800;cursor:pointer;transition:all .15s;letter-spacing:-.3px;margin-top:4px}
+.sbtn:active{transform:scale(.98)}
+.sbtn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.sbtn-sec{width:100%;padding:13px;background:var(--sf2);color:var(--txt);border:1.5px solid var(--bd);border-radius:14px;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer;margin-top:10px}
+.serr{background:#b8402a12;border:1px solid #b8402a35;border-radius:10px;padding:12px 14px;font-size:13px;color:var(--red);margin-top:10px;display:none;text-align:center}
+.sdivider{display:flex;align-items:center;gap:12px;margin:20px 0;color:var(--mut);font-size:12px}
+.sdivider::before,.sdivider::after{content:'';flex:1;height:1px;background:var(--bd)}
+
+/* APP */
+.hdr{background:var(--sf);border-bottom:1px solid var(--bd);padding:14px 18px 10px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100}
+.hdr-title{font-size:16px;font-weight:800;color:var(--acc);letter-spacing:-.5px}
+.hdr-sub{font-size:10px;color:var(--mut);font-family:'DM Mono',monospace;margin-top:1px}
+.hdr-right{margin-left:auto;text-align:right;display:flex;align-items:center;gap:8px}
+.hdr-amt{font-size:17px;font-weight:700;color:var(--acc);font-family:'DM Mono',monospace}
+.hdr-lbl{font-size:9px;color:var(--mut);text-transform:uppercase;letter-spacing:.5px}
+.icon-btn{background:var(--sf2);border:1px solid var(--bd);color:var(--mut);padding:6px 10px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Syne',sans-serif;white-space:nowrap}
+
+.sync-bar{background:var(--sf2);border-bottom:1px solid var(--bd);padding:6px 18px;display:flex;align-items:center;gap:8px;font-size:11px;font-family:'DM Mono',monospace;color:var(--mut)}
+.sdot{width:7px;height:7px;border-radius:50%;background:var(--mut);transition:background .3s;flex-shrink:0}
+.sdot.ok{background:var(--grn)}.sdot.loading{background:var(--acc);animation:pulse .8s infinite}.sdot.err{background:var(--red)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+.tabs{display:flex;background:var(--sf);border-bottom:1px solid var(--bd);overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex-shrink:0;padding:10px 14px;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--mut);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:all .2s}
+.tab.active{color:var(--acc);border-bottom-color:var(--acc)}
+
+.main{padding:14px 14px 110px}
+.card{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:16px;margin-bottom:12px}
+.ctitle{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--mut);margin-bottom:12px}
+
+input[type=text],input[type=number],select,textarea{background:var(--sf2);border:1px solid var(--bd);border-radius:10px;color:var(--txt);font-family:'Syne',sans-serif;font-size:14px;padding:11px 14px;outline:none;width:100%;transition:border-color .2s;-webkit-appearance:none;resize:none}
+input:focus,select:focus,textarea:focus{border-color:var(--acc)}
+input::placeholder,textarea::placeholder{color:var(--mut)}
+
+.btn-primary{width:100%;padding:13px;background:var(--acc);color:#fffdf6;border:none;border-radius:12px;font-family:'Syne',sans-serif;font-size:14px;font-weight:800;cursor:pointer;margin-top:6px;transition:all .15s}
+.btn-primary:active{transform:scale(.97)}
+.btn-primary:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.btn-sec{width:100%;padding:11px;background:var(--sf2);color:var(--txt);border:1px solid var(--bd);border-radius:12px;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer;margin-top:8px}
+.btn-del{background:none;border:none;color:var(--mut);cursor:pointer;font-size:14px;padding:4px 8px;border-radius:6px;flex-shrink:0}
+.btn-reset{width:100%;padding:10px;background:none;color:var(--red);border:1px solid #b8402a35;border-radius:10px;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer}
+
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.ffull{grid-column:1/-1}
+
+/* KATILIMCIlar */
+.kbtn{flex:1;padding:9px 6px;border-radius:10px;border:1px solid var(--bd);background:var(--sf2);color:var(--mut);font-family:'Syne',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kbtn.active{border-color:var(--acc);background:#b07d2a18;color:var(--acc)}
+
+/* FOTOĞRAF */
+.photo-upload-area{border:2px dashed var(--bd);border-radius:10px;padding:12px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:8px}
+.photo-preview{width:100%;border-radius:8px;max-height:140px;object-fit:cover;display:block;margin-bottom:8px}
+
+/* MASRAF LİSTESİ */
+.exp-item{background:var(--sf);border:1px solid var(--bd);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:all .15s;animation:fadeUp .25s ease}
+.exp-item:active{background:var(--sf2)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
+.edot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.einfo{flex:1;min-width:0}
+.edesc{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.emeta{font-size:10px;color:var(--mut);font-family:'DM Mono',monospace;margin-top:2px}
+.eamt{font-family:'DM Mono',monospace;font-size:14px;color:var(--acc);white-space:nowrap}
+
+/* ÖZET */
+.total-box{background:linear-gradient(135deg,#b07d2a18,#b8402a0a);border:1px solid #b07d2a30;border-radius:12px;padding:16px;text-align:center;margin-bottom:14px}
+.t-lbl{font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:1px}
+.t-amt{font-family:'DM Mono',monospace;font-size:30px;color:var(--acc);margin:4px 0}
+.t-per{font-family:'DM Mono',monospace;font-size:12px;color:var(--mut)}
+.prow{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--bd);cursor:pointer;transition:background .15s}
+.prow:last-child{border-bottom:none}
+.prow:active{background:var(--sf2)}
+.chip{font-family:'DM Mono',monospace;font-size:11px;padding:3px 9px;border-radius:20px;white-space:nowrap}
+.chip-pos{background:#2d7a4f18;color:var(--grn)}.chip-neg{background:#b8402a18;color:var(--red)}.chip-zero{background:#8a7a5e18;color:var(--mut)}
+.icard{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:16px;margin-bottom:10px}
+.iban-val{font-family:'DM Mono',monospace;font-size:12px;background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:10px 12px;letter-spacing:.8px;word-break:break-all;margin-bottom:8px}
+.copy-btn{background:var(--sf2);border:1px solid var(--bd);color:var(--txt);padding:6px 12px;border-radius:8px;font-family:'Syne',sans-serif;font-size:11px;font-weight:600;cursor:pointer}
+
+/* HARİTA */
+#mapContainer{height:280px;border-radius:12px;overflow:hidden;margin-bottom:10px;border:1px solid var(--bd)}
+.place-item{background:var(--sf);border:1px solid var(--bd);border-radius:10px;padding:10px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px}
+
+/* NOTLAR */
+.note-item{background:var(--sf);border:1px solid var(--bd);border-radius:10px;padding:12px 14px;margin-bottom:8px;animation:fadeUp .2s ease}
+.note-author{font-size:11px;font-weight:700;color:var(--acc);margin-bottom:4px}
+.note-text{font-size:13px;line-height:1.5}
+.note-time{font-size:10px;color:var(--mut);font-family:'DM Mono',monospace;margin-top:6px}
+.note-row{display:flex;gap:8px;align-items:flex-end}
+.note-row textarea{flex:1;min-height:44px;max-height:100px}
+.note-send{background:var(--acc);border:none;color:#fffdf6;width:44px;height:44px;border-radius:10px;font-size:18px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+
+/* YARDIMCI */
+.slabel{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--mut);margin-bottom:8px;margin-top:4px;display:flex;align-items:center;gap:8px}
+.slabel::after{content:'';flex:1;height:1px;background:var(--bd)}
+.stag{display:inline-block;font-size:10px;font-family:'DM Mono',monospace;background:var(--sf2);border:1px solid var(--bd);padding:2px 8px;border-radius:20px;color:var(--mut);margin-left:4px}
+.empty{text-align:center;padding:28px 20px;color:var(--mut)}
+.empty .ico{font-size:32px;margin-bottom:8px}
+.panel{display:none}.panel.active{display:block}
+.toast{position:fixed;bottom:76px;left:50%;transform:translateX(-50%) translateY(14px);background:var(--grn);color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:700;opacity:0;transition:all .25s;pointer-events:none;z-index:300;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.danger-zone{background:#b8402a08;border:1px solid #b8402a28;border-radius:12px;padding:12px 14px;margin-top:8px}
+.danger-zone p{font-size:12px;color:var(--mut);margin-bottom:8px}
+.mono{font-family:'DM Mono',monospace;font-size:13px;letter-spacing:.5px}
+.code-box{background:var(--sf2);border:2px dashed var(--bd);border-radius:12px;padding:16px;text-align:center;margin-bottom:10px}
+.code-val{font-family:'DM Mono',monospace;font-size:32px;font-weight:700;color:var(--acc);letter-spacing:6px}
+.code-hint{font-size:11px;color:var(--mut);margin-top:6px}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:#00000077;z-index:200;display:flex;align-items:flex-end;justify-content:center}
+.modal{background:var(--sf);border-radius:20px 20px 0 0;padding:22px 18px 36px;width:100%;max-width:480px;max-height:88vh;overflow-y:auto;animation:slideUp .25s ease}
+@keyframes slideUp{from{transform:translateY(30px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.modal-title{font-size:16px;font-weight:800}
+.modal-close{background:var(--sf2);border:1px solid var(--bd);color:var(--mut);width:30px;height:30px;border-radius:50%;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.modal-img{width:100%;border-radius:10px;display:block;margin-bottom:12px;max-height:50vh;object-fit:contain;background:var(--sf2)}
+.modal-info{background:var(--sf2);border-radius:10px;padding:12px;margin-bottom:10px}
+.mir{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--bd)}
+.mir:last-child{border-bottom:none}
+.mil{font-size:11px;color:var(--mut)}.miv{font-size:12px;font-weight:700}
+
+/* AYARLAR — KATILIMCIlar */
+.katilimci-item{display:flex;align-items:center;gap:10px;background:var(--sf2);border-radius:10px;padding:10px 14px;margin-bottom:8px}
+.k-avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;flex-shrink:0;color:#fffdf6}
+</style>
+</head>
+<body>
+
+<!-- GİRİŞ EKRANI -->
+<div id="welcomeScreen" class="screen">
+  <div class="screen-card">
+    <div class="screen-logo">🚗</div>
+    <div class="screen-title">İşimizin Adı Ne?</div>
+    <div class="screen-sub">O Yumurta Kırılacak !!!</div>
+
+    <div class="field">
+      <label>Adınız Soyadınız</label>
+      <input class="finput" type="text" id="wName" placeholder="Ad Soyad">
+    </div>
+    <div class="field">
+      <label>E-posta Adresiniz</label>
+      <input class="finput" type="email" id="wEmail" placeholder="ornek@mail.com" autocomplete="email">
+    </div>
+
+    <div class="sdivider">seyahat seçin</div>
+
+    <div class="field">
+      <label>Davet Kodu ile Katıl</label>
+      <input class="finput code" type="text" id="wCode" placeholder="XXXXXX" maxlength="6" oninput="this.value=this.value.toUpperCase()">
+    </div>
+    <button class="sbtn" onclick="joinTrip()">Katıl →</button>
+
+    <div class="sdivider">veya</div>
+
+    <div class="field">
+      <label>Yeni Seyahat Oluştur</label>
+      <input class="finput" type="text" id="wTripName" placeholder="Seyahat adı (örn: Karadeniz 2025)">
+    </div>
+    <button class="sbtn" onclick="createTrip()">Seyahat Oluştur</button>
+
+    <div class="serr" id="wErr"></div>
+  </div>
+</div>
+
+<!-- UYGULAMA -->
+<div id="app" style="display:none">
+
+<div class="hdr">
+  <span style="font-size:22px">🚗</span>
+  <div>
+    <div class="hdr-title">İşimizin Adı Ne?</div>
+    <div class="hdr-sub" id="hdrSub">yükleniyor...</div>
+  </div>
+  <div class="hdr-right">
+    <button class="icon-btn" onclick="showTripInfo()">🔑 Kod</button>
+    <div>
+      <div class="hdr-amt" id="hdrAmt">₺0</div>
+      <div class="hdr-lbl">toplam</div>
+    </div>
+  </div>
+</div>
+
+<div class="sync-bar">
+  <div class="sdot loading" id="sdot"></div>
+  <span id="stxt">Bağlanıyor...</span>
+  <button onclick="loadAll()" style="margin-left:auto;background:var(--sf);border:1px solid var(--bd);color:var(--mut);padding:3px 9px;border-radius:20px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer">🔄</button>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="goTab('masraflar',this)">💸 Masraflar</button>
+  <button class="tab" onclick="goTab('ozet',this)">📊 Özet</button>
+  <button class="tab" onclick="goTab('guzergah',this)">🗺️ Güzergah</button>
+  <button class="tab" onclick="goTab('notlar',this)">💬 Notlar</button>
+  <button class="tab" onclick="goTab('ayarlar',this)">⚙️ Ayarlar</button>
+  <button class="tab" onclick="goTab('oneriler',this)">🍽️ Öneriler</button>
+</div>
+
+<div class="main">
+
+  <!-- MASRAFLAR -->
+  <div id="p-masraflar" class="panel active">
+    <div class="card">
+      <div class="ctitle">➕ Masraf Ekle</div>
+      <div class="slabel">Kim ödedi?</div>
+      <div id="whoRow" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px"></div>
+      <div class="fgrid">
+        <input class="ffull" type="text" id="fDesc" placeholder="Ne için? (akaryakıt, yemek...)">
+        <input type="number" id="fAmt" placeholder="₺ Tutar" step="0.01" min="0" inputmode="decimal">
+        <select id="fCat">
+          <option>⛽ Akaryakıt</option><option>🍽️ Yemek</option><option>🏨 Konaklama</option>
+          <option>🎟️ Aktivite</option><option>🛒 Market</option><option>🅿️ Park/Otoban</option>
+          <option>☕ Kafe</option><option>📦 Diğer</option>
+        </select>
+      </div>
+      <label id="sahsiLabel" style="display:flex;align-items:center;gap:10px;background:var(--sf2);border:1px solid var(--bd);border-radius:10px;padding:11px 14px;cursor:pointer;margin-bottom:8px" onclick="toggleSahsi()">
+        <div id="sahsiCheck" style="width:20px;height:20px;border-radius:6px;border:2px solid var(--bd);background:var(--sf);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px"></div>
+        <div><div style="font-size:13px;font-weight:700">🙋 Şahsi Masraf</div><div style="font-size:11px;color:var(--mut)">Sadece ben öderim, bölünmez</div></div>
+      </label>
+      <div class="slabel">📷 Fiş</div>
+      <div id="photoPreviewArea"></div>
+      <label for="photoInput" class="photo-upload-area">
+        <input type="file" id="photoInput" accept="image/*" onchange="onPhotoSelect(event)">
+        <div style="font-size:22px;margin-bottom:4px">📷</div>
+        <div style="font-size:12px;color:var(--mut);font-weight:600">Fiş fotoğrafı ekle</div>
+      </label>
+      <button class="btn-primary" id="addBtn" onclick="addExpense()">Ekle</button>
+    </div>
+    <div class="slabel">Masraf Listesi <span class="stag" id="expCnt">0</span></div>
+    <div id="expList"></div>
+  </div>
+
+  <!-- ÖZET -->
+  <div id="p-ozet" class="panel">
+    <div class="card">
+      <div class="ctitle">💰 Genel Özet</div>
+      <div class="total-box">
+        <div class="t-lbl">Toplam Ortak Harcama</div>
+        <div class="t-amt" id="sumTotal">₺0,00</div>
+        <div class="t-per">Kişi başı: <b id="sumPer" style="color:var(--txt)">₺0,00</b></div>
+      </div>
+      <div id="personRows"></div>
+    </div>
+    <div class="slabel">💳 Ödemeler</div>
+    <div id="ibanSection"></div>
+    <div id="personDetailSection"></div>
+  </div>
+
+  <!-- GÜZERGAH -->
+  <div id="p-guzergah" class="panel">
+    <div class="card">
+      <div class="ctitle">📍 Yer Ekle</div>
+      <div style="position:relative;margin-bottom:8px">
+        <div style="display:flex;gap:8px">
+          <input type="text" id="placeInput" placeholder="Yer ara veya isim yaz..." style="flex:1" oninput="searchPlace(this.value)" autocomplete="off">
+          <button onclick="getCurrentLocation()" style="background:var(--acc);border:none;color:#fff;padding:11px 14px;border-radius:10px;font-size:16px;cursor:pointer;flex-shrink:0">📍</button>
+        </div>
+        <div id="searchResults" style="display:none;position:absolute;top:100%;left:0;right:48px;background:var(--sf);border:1px solid var(--bd);border-radius:10px;z-index:999;margin-top:4px;max-height:180px;overflow-y:auto;box-shadow:0 4px 16px #0002"></div>
+      </div>
+      <div id="selectedPlaceInfo" style="display:none;background:var(--sf2);border-radius:8px;padding:8px 12px;margin-bottom:8px;font-size:12px;color:var(--mut)"></div>
+      <p style="font-size:11px;color:var(--mut);margin-bottom:8px">💡 Haritaya tıklayarak da yer ekleyebilirsiniz.</p>
+      <button class="btn-primary" onclick="addPlace()">Güzergaha Ekle</button>
+    </div>
+    <div id="mapContainer"></div>
+    <div class="slabel">Ziyaret Edilen Yerler <span class="stag" id="placeCnt">0</span></div>
+    <div id="placeList"></div>
+  </div>
+
+  <!-- NOTLAR -->
+  <div id="p-notlar" class="panel">
+    <div class="card">
+      <div class="ctitle">💬 Not Ekle</div>
+      <div class="note-row">
+        <textarea id="noteText" placeholder="Yorumunuzu yazın..." rows="2"></textarea>
+        <button class="note-send" onclick="addNote()">➤</button>
+      </div>
+    </div>
+    <div class="slabel">Notlar <span class="stag" id="noteCnt">0</span></div>
+    <div id="noteList"></div>
+  </div>
+
+  <!-- ÖNERİLER -->
+  <div id="p-oneriler" class="panel">
+    <div class="card">
+      <div class="ctitle">🍽️ Yakın Çevrede Ne Yenir?</div>
+      <p style="font-size:12px;color:var(--mut);margin-bottom:12px">Haritadan bir bölge seçin veya mevcut konumunuzu kullanın. En iyi restoranlar, kafeler ve yemek yerleri listelensin.</p>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <select id="oneriKategori" style="flex:1">
+          <option value="restaurant">🍽️ Restoran</option>
+          <option value="cafe">☕ Kafe</option>
+          <option value="fast_food">🍔 Fast Food</option>
+          <option value="kebab">🥙 Kebapçı</option>
+          <option value="bakery">🥐 Fırın</option>
+          <option value="bar">🍺 Bar</option>
+          <option value="food">🥘 Tüm Yemek</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <input type="text" id="oneriSehir" placeholder="Şehir veya bölge (örn: Kastamonu)" style="flex:1">
+        <button onclick="searchOneri()" style="background:var(--acc);border:none;color:#fff;padding:11px 14px;border-radius:10px;font-size:14px;cursor:pointer;flex-shrink:0;font-family:'Syne',sans-serif;font-weight:700">Ara</button>
+      </div>
+      <button class="btn-sec" onclick="oneriKonumdan()" style="margin-top:0">📍 Mevcut Konumumdan Ara</button>
+    </div>
+    <div id="oneriMap" style="height:220px;border-radius:12px;overflow:hidden;margin-bottom:12px;border:1px solid var(--bd);display:none"></div>
+    <div id="oneriSonuclar"></div>
+  </div>
+
+  <!-- AYARLAR -->
+  <div id="p-ayarlar" class="panel">
+    <div class="card">
+      <div class="ctitle">🔑 Seyahat Bilgisi</div>
+      <div class="code-box">
+        <div class="t-lbl">Davet Kodu</div>
+        <div class="code-val" id="settingsCode">------</div>
+        <div class="code-hint">Bu kodu arkadaşlarınızla paylaşın</div>
+      </div>
+      <button class="btn-primary" onclick="shareCode()">📤 Kodu Paylaş</button>
+    </div>
+    <div class="card">
+      <div class="ctitle">👥 Katılımcılar</div>
+      <div id="katilimciList"></div>
+    </div>
+    <div class="card">
+      <div class="ctitle">💳 IBAN Bilgilerim</div>
+      <p style="font-size:12px;color:var(--mut);margin-bottom:10px">Diğerleri size ödeme yapabilsin diye IBAN'ınızı girin.</p>
+      <input class="mono" type="text" id="myIban" placeholder="TR00 0000 0000 0000 0000 0000 00">
+      <button class="btn-primary" onclick="saveMyIban()" style="margin-top:8px">Kaydet</button>
+    </div>
+    <button class="btn-sec" onclick="loadAll()">🔄 Yenile</button>
+    <button class="btn-sec" style="margin-top:8px;color:var(--red);border-color:#b8402a35" onclick="leaveTrip()">🚪 Seyahatten Ayrıl</button>
+    <div class="danger-zone">
+      <p>⚠️ Tüm masraflar silinir. Geri alınamaz.</p>
+      <button class="btn-reset" onclick="resetExpenses()">🗑️ Masrafları Sıfırla</button>
+    </div>
+  </div>
+
+</div>
+</div><!-- /app -->
+
+<div id="modal" style="display:none"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ━━━━━━━━━━━━━━━━━━━━━━━━
+// SUPABASE
+// ━━━━━━━━━━━━━━━━━━━━━━━━
+const SB_URL = 'https://iiqavkrubmxckhesvlne.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlpcWF2a3J1Ym14Y2toZXN2bG5lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNjUzODMsImV4cCI6MjA5MTY0MTM4M30.tsFKpyBWb7wJUB1Pr0hEpABmebKzNJNA4wVOW-prQxY';
+const H = {'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
+const BUCKET = 'fisler';
+
+async function sbGet(table, filter='') {
+  const r = await fetch(`${SB_URL}/rest/v1/${table}?${filter}`,{headers:H});
+  if(!r.ok) throw new Error(table+' GET '+r.status);
+  return r.json();
+}
+async function sbPost(table, body) {
+  const r = await fetch(`${SB_URL}/rest/v1/${table}`,{method:'POST',headers:{...H,'Prefer':'return=representation'},body:JSON.stringify(body)});
+  if(!r.ok){const t=await r.text();throw new Error(t);}
+  return r.json();
+}
+async function sbPatch(table, filter, body) {
+  const r = await fetch(`${SB_URL}/rest/v1/${table}?${filter}`,{method:'PATCH',headers:{...H,'Prefer':'return=minimal'},body:JSON.stringify(body)});
+  if(!r.ok) throw new Error(table+' PATCH '+r.status);
+}
+async function sbDelete(table, filter) {
+  const r = await fetch(`${SB_URL}/rest/v1/${table}?${filter}`,{method:'DELETE',headers:H});
+  if(!r.ok) throw new Error(table+' DELETE '+r.status);
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━
+// STATE
+// ━━━━━━━━━━━━━━━━━━━━━━━━
+let mySession = null;  // {name, sessionId, tripId, katilimciId, iban}
+let currentTrip = null;
+let katilimcilar = [];
+let masraflar = [];
+let places = [];
+let notes = [];
+let whoIdx = 0; // seçili katılımcı indexi
+let saving = false;
+let pendingPhoto = null;
+let map = null;
+let markers = [];
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━
+// DAVET KODU ÜRETİCİ
+// ━━━━━━━━━━━━━━━━━━━━━━━━
+function genCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for(let i=0;i<6;i++) code += chars[Math.floor(Math.random()*chars.length)];
+  return code;
+}
+
+function getSessionId() {
+  let sid = localStorage.getItem('sessionId');
+  if(!sid) { sid = 'sess_'+Date.now()+'_'+Math.random().toString(36).slice(2); localStorage.setItem('sessionId',sid); }
+  return sid;
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━
+// GİRİŞ
+// ━━━━━━━━━━━━━━━━━━━━━━━━
+async function createTrip() {
+  const name = document.getElementById('wName').value.trim();
+  const email = document.getElementById('wEmail').value.trim().toLowerCase();
+  const tripName = document.getElementById('wTripName').value.trim();
+  const err = document.getElementById('wErr');
+  if(!name){err.style.display='block';err.textContent='Adınızı girin!';return;}
+  if(!email||!email.includes('@')){err.style.display='block';err.textContent='Geçerli e-posta girin!';return;}
+  if(!tripName){err.style.display='block';err.textContent='Seyahat adı girin!';return;}
+  err.style.display='none';
+
+  const tripId = 'trip_'+Date.now();
+  const davetKodu = genCode();
+  const sessionId = getSessionId();
+
+  try {
+    await sbPost('seyahatler',{id:tripId, isim:tripName, davet_kodu:davetKodu, owner_session:sessionId});
+    const rows = await sbPost('katilimcilar',{trip_id:tripId, isim:name, email, session_id:sessionId, iban:'', rol:'admin'});
+    mySession = {name, email, sessionId, tripId, katilimciId:rows[0].id, iban:'', rol:'admin'};
+    localStorage.setItem('mySession', JSON.stringify(mySession));
+    document.getElementById('welcomeScreen').style.display='none';
+    document.getElementById('app').style.display='block';
+    await loadAll();
+    showToast('✅ Seyahat oluşturuldu! Kod: '+davetKodu);
+  } catch(e){err.style.display='block';err.textContent='Hata: '+e.message;}
+}
+
+async function joinTrip() {
+  const name = document.getElementById('wName').value.trim();
+  const email = document.getElementById('wEmail').value.trim().toLowerCase();
+  const code = document.getElementById('wCode').value.trim().toUpperCase();
+  const err = document.getElementById('wErr');
+  if(!name){err.style.display='block';err.textContent='Adınızı girin!';return;}
+  if(!email||!email.includes('@')){err.style.display='block';err.textContent='Geçerli e-posta girin!';return;}
+  if(code.length<6){err.style.display='block';err.textContent='6 haneli kodu girin!';return;}
+  err.style.display='none';
+
+  try {
+    const trips = await sbGet('seyahatler',`davet_kodu=eq.${code}`);
+    if(!trips.length){err.style.display='block';err.textContent='Kod bulunamadı!';return;}
+    const trip = trips[0];
+    const sessionId = getSessionId();
+
+    // Aynı email ile zaten katılmış mı?
+    const byEmail = await sbGet('katilimcilar',`trip_id=eq.${trip.id}&email=eq.${encodeURIComponent(email)}`);
+    let katilimciId, iban='', rol='uye';
+    if(byEmail.length) {
+      // Var olan kaydı güncelle (session yenile)
+      katilimciId = byEmail[0].id;
+      iban = byEmail[0].iban||'';
+      rol = byEmail[0].rol||'uye';
+      await sbPatch('katilimcilar',`id=eq.${katilimciId}`,{session_id:sessionId, isim:name});
+    } else {
+      const rows = await sbPost('katilimcilar',{trip_id:trip.id, isim:name, email, session_id:sessionId, iban:'', rol:'uye'});
+      katilimciId = rows[0].id;
+    }
+    mySession = {name, email, sessionId, tripId:trip.id, katilimciId, iban, rol};
+    localStorage.setItem('mySession', JSON.stringify(mySession));
+    document.getElementById('welcomeScreen').style.display='none';
+    document.getElementById('app').style.display='block';
+    await loadAll();
+    showToast('✅ '+trip.isim+' seyahatine katıldın!');
+  } catch(e){err.style.display='block';err.textContent='Hata: '+e.message;}
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━
+// VERİ YÜKLEME
+// ━━━━━━━━━━━━━━━━━━━━━━━━
+async function loadAll() {
+  if(!mySession) return;
+  sync('loading','Yükleniyor...');
+  try {
+    const tid = mySession.tripId;
+    const [trips, kList, mList, pList, nList] = await Promise.all([
+      sbGet('seyahatler',`id=eq.${tid}`),
+      sbGet('katilimcilar',`trip_id=eq.${tid}&order=created_at.asc`),
+      sbGet('masraflar',`trip_id=eq.${tid}&order=created_at.asc`),
+      sbGet('guzergahlar',`trip_id=eq.${tid}&order=sira.asc,created_at.asc`),
+      sbGet('notlar',`trip_id=eq.${tid}&order=created_at.asc`)
+    ]);
+    currentTrip = trips[0];
+    katilimcilar = kList;
+    masraflar = mList;
+    places = pList;
+    notes = nList;
+    // whoIdx = kendi indexi
+    whoIdx = katilimcilar.findIndex(k=>k.id===mySession.katilimciId);
+    if(whoIdx<0) whoIdx=0;
+    // Rol bilgisini güncelle
+    const myK2 = katilimcilar.find(k=>k.id===mySession.katilimciId);
+    if(myK2) { mySession.rol=myK2.rol; localStorage.setItem('mySession',JSON.stringify(mySession)); }
+    sync('ok','Bağlandı ✓');
+    renderAll();
+  } catch(e){ sync('err','Hata: '+e.message); }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━
+// RENDER
+// ━━━━━━━━━━━━━━━━━━━━━━━━
+function renderAll() {
+  renderHeader();
+  renderWho();
+  renderExpList();
+  if(document.getElementById('p-ozet').classList.contains('active')) renderSummary();
+  if(document.getElementById('p-guzergah').classList.contains('active')) renderPlaces();
+  if(document.getElementById('p-notlar').classList.contains('active')) renderNotes();
+  if(document.getElementById('p-ayarlar').classList.contains('active')) renderSettings();
+}
+
+function getColor(idx) {
+  const colors = ['#b07d2a','#b8402a','#2d7a4f','#5b6abf','#8b4ab8','#2a8ab8','#b87d2a','#5ab82a'];
+  return colors[idx % colors.length];
+}
+function getBg(idx) {
+  return getColor(idx)+'20';
+}
+function getInitial(name) {
+  return name ? name.charAt(0).toUpperCase() : '?';
+}
+
+function renderHeader() {
+  const ortakMasraf = masraflar.filter(e=>!e.sahsi);
+  const total = ortakMasraf.reduce((s,e)=>s+e.amount,0);
+  document.getElementById('hdrAmt').textContent = '₺'+fmt(total);
+  document.getElementById('hdrSub').textContent = (currentTrip?.isim||'') + ' · ' + (mySession?.name||'');
+}
+
+function renderWho() {
+  const row = document.getElementById('whoRow');
+  if(!katilimcilar.length) { row.innerHTML='<div style="font-size:12px;color:var(--mut)">Katılımcı yükleniyor...</div>'; return; }
+  // whoIdx geçerliliğini kontrol et
+  if(whoIdx < 0 || whoIdx >= katilimcilar.length) {
+    whoIdx = katilimcilar.findIndex(k=>k.id===mySession?.katilimciId);
+    if(whoIdx < 0) whoIdx = 0;
+  }
+  row.innerHTML = katilimcilar.map((k,i)=>{
+    const color = getColor(i);
+    const active = i === whoIdx;
+    const isMe = k.id === mySession?.katilimciId;
+    return `<button class="kbtn${active?' active':''}" style="${active?`border-color:${color};background:${getBg(i)};color:${color}`:''}" onclick="pickWho(${i})">${getInitial(k.isim)} ${k.isim.split(' ')[0]}${isMe?' ✓':''}</button>`;
+  }).join('');
+}
+function pickWho(i){whoIdx=i;renderWho();}
+
+function renderExpList() {
+  const el = document.getElementById('expList');
+  document.getElementById('expCnt').textContent = masraflar.length;
+  if(!masraflar.length){
+    el.innerHTML=`<div class="empty"><div class="ico">🧾</div><p>Henüz masraf yok.</p></div>`;
+    return;
+  }
+  el.innerHTML = [...masraflar].reverse().map((e,ri)=>{
+    const i = masraflar.length-1-ri;
+    // Şahsi masrafları sadece sahibi görür
+    if(e.sahsi && e.katilimci_id !== mySession?.katilimciId) return '';
+    const k = katilimcilar.find(k=>k.id===e.katilimci_id);
+    const kIdx = katilimcilar.findIndex(k=>k.id===e.katilimci_id);
+    const color = getColor(kIdx);
+    return `<div class="exp-item" onclick="openExpModal(${i})">
+      <div class="edot" style="background:${color}"></div>
+      <div class="einfo">
+        <div class="edesc">${e.cat} ${e.aciklama}${e.sahsi?' <span style="font-size:9px;background:#b8402a18;color:var(--red);border-radius:4px;padding:1px 5px">şahsi</span>':''}</div>
+        <div class="emeta">${k?.isim||'?'} · ${e.tarih}${e.photo?' · 📷':''}</div>
+      </div>
+      <div class="eamt">₺${fmt(e.amount)}</div>
+      <button class="btn-del" onclick="event.stopPropagation();delExp(${e.id})">✕</button>
+    </div>`;
+  }).filter(Boolean).join('');
+}
+
+function renderSummary() {
+  const ortakMasraf = masraflar.filter(e=>!e.sahsi);
+  const n = katilimcilar.length || 1;
+  const total = ortakMasraf.reduce((s,e)=>s+e.amount,0);
+  const per = total/n;
+
+  document.getElementById('sumTotal').textContent = '₺'+fmt(total);
+  document.getElementById('sumPer').textContent = '₺'+fmt(per)+' ('+n+' kişi)';
+
+  // Her kişinin ödediği (ortak)
+  const paid = katilimcilar.map(k=>ortakMasraf.filter(e=>e.katilimci_id===k.id).reduce((s,e)=>s+e.amount,0));
+
+  document.getElementById('personRows').innerHTML = katilimcilar.map((k,i)=>{
+    const bal=paid[i]-per;
+    const cc=bal>0.009?'chip-pos':bal<-0.009?'chip-neg':'chip-zero';
+    const ct=bal>0.009?`+₺${fmt(bal)} alacaklı`:bal<-0.009?`-₺${fmt(Math.abs(bal))} borçlu`:'dengede';
+    return `<div class="prow" onclick="togglePersonDetail(${i})">
+      <div style="width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;background:${getBg(i)};color:${getColor(i)}">${getInitial(k.isim)}</div>
+      <div style="flex:1"><div style="font-size:13px;font-weight:700">${k.isim}</div><div style="font-size:10px;color:var(--mut);font-family:'DM Mono',monospace">Ödedi: ₺${fmt(paid[i])}</div></div>
+      <div class="chip ${cc}">${ct}</div>
+      <span style="color:var(--mut);margin-left:6px;font-size:14px" id="arr${i}">▼</span>
+    </div>
+    <div id="pd${i}" style="display:none;padding:8px 0 4px">
+      ${masraflar.filter(e=>e.katilimci_id===k.id&&(!e.sahsi||e.katilimci_id===mySession?.katilimciId)).map(e=>`
+        <div onclick="openExpModal(${masraflar.indexOf(e)})" style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;cursor:pointer;transition:background .15s" onmouseover="this.style.background='var(--sf2)'" onmouseout="this.style.background=''">
+          <span style="font-size:12px">${e.cat}</span>
+          <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.aciklama}${e.sahsi?' 🙋':''}</div><div style="font-size:10px;color:var(--mut);font-family:'DM Mono',monospace">${e.tarih}</div></div>
+          <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--acc)">₺${fmt(e.amount)}</div>
+        </div>`).join('') || '<div style="font-size:12px;color:var(--mut);padding:8px;text-align:center">Masraf yok</div>'}
+    </div>`;
+  }).join('');
+
+  // Ödeme planı
+  const sec = document.getElementById('ibanSection');
+  if(!total){sec.innerHTML=`<div class="empty" style="padding:14px"><p>Masraf eklenince görünür.</p></div>`;
+    document.getElementById('personDetailSection').innerHTML='';return;}
+
+  const balances = katilimcilar.map((k,i)=>({i,k,b:paid[i]-per}));
+  const creditors = balances.filter(x=>x.b>0.009).sort((a,b)=>b.b-a.b);
+  const debtors   = balances.filter(x=>x.b<-0.009).sort((a,b)=>a.b-b.b);
+  const payments  = [];
+  const cBal = creditors.map(c=>({...c}));
+  for(const d of debtors.map(d=>({...d}))){
+    let rem=Math.abs(d.b);
+    for(const c of cBal){
+      if(rem<0.009) break;
+      if(c.b<0.009) continue;
+      const t=Math.min(rem,c.b);
+      payments.push({from:d,to:c,amount:t});
+      rem-=t; c.b-=t;
+    }
+  }
+  sec.innerHTML = payments.map(p=>{
+    const iban = p.to.k.iban||'';
+    return `<div class="icard" style="border-left:3px solid ${getColor(p.from.i)}">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <div style="width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;background:${getBg(p.from.i)};color:${getColor(p.from.i)}">${getInitial(p.from.k.isim)}</div>
+        <div><div style="font-size:14px;font-weight:700">${p.from.k.isim}</div>
+        <div style="font-size:11px;color:var(--mut)">₺${fmt(p.amount)} → <span style="color:${getColor(p.to.i)}">${p.to.k.isim}</span>'e</div></div>
+      </div>
+      ${iban
+        ?`<div class="iban-val">${iban}</div>
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <span style="font-size:12px;color:var(--mut)">Gönder: <strong style="color:var(--red);font-family:'DM Mono',monospace">₺${fmt(p.amount)}</strong></span>
+            <button class="copy-btn" onclick="copyIban(this,'${iban}')">📋 Kopyala</button>
+          </div>`
+        :`<div style="font-size:11px;color:var(--mut)">⚠️ ${p.to.k.isim} için IBAN girilmemiş.</div>`
+      }
+    </div>`;
+  }).join('')||`<div class="empty" style="padding:14px;color:var(--grn)">✅ Herkes dengede!</div>`;
+  document.getElementById('personDetailSection').innerHTML='';
+}
+
+function togglePersonDetail(i) {
+  const d=document.getElementById('pd'+i);
+  const a=document.getElementById('arr'+i);
+  if(d.style.display==='none'){d.style.display='block';a.textContent='▲';}
+  else{d.style.display='none';a.textContent='▼';}
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━
+// MASRAF ACTIONS
+// ━━━━━━━━━━━━━━━━━━━━━━━━
+async function addExpense() {
+  const aciklama = document.getElementById('fDesc').value.trim();
+  const amount   = parseFloat(document.getElementById('fAmt').value);
+  const cat      = document.getElementById('fCat').value;
+  if(!aciklama||!amount||amount<=0){showToast('⚠️ Açıklama ve tutar girin!');return;}
+
+  const sahsi = document.getElementById('sahsiCheck').textContent==='✓';
+  const katilimci = katilimcilar[whoIdx];
+  if(!katilimci){showToast('⚠️ Katılımcı seçin!');return;}
+
+  const btn=document.getElementById('addBtn');
+  btn.disabled=true; btn.textContent='⏳ Kaydediliyor...';
+
+  const now=new Date();
+  const tarih=now.toLocaleDateString('tr-TR',{day:'2-digit',month:'2-digit'})+' '+now.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});
+  const expId=Date.now();
+
+  let photo=null;
+  if(pendingPhoto){
+    btn.textContent='📷 Yükleniyor...';
+    try{photo=await uploadPhoto(pendingPhoto,expId);}catch(e){alert('Fotoğraf hatası: '+e.message);}
+  }
+
+  try{
+    const rows=await sbPost('masraflar',{
+      trip_id:mySession.tripId, katilimci_id:katilimci.id,
+      aciklama, amount, cat, sahsi, photo, tarih
+    });
+    masraflar.push(rows[0]);
+    document.getElementById('fDesc').value='';
+    document.getElementById('fAmt').value='';
+    clearPhoto();
+    // Şahsi sıfırla
+    document.getElementById('sahsiCheck').textContent='';
+    document.getElementById('sahsiCheck').style.background='var(--sf)';
+    document.getElementById('sahsiCheck').style.borderColor='var(--bd)';
+    document.getElementById('sahsiLabel').style.background='var(--sf2)';
+    document.getElementById('sahsiLabel').style.borderColor='var(--bd)';
+    renderExpList(); renderHeader();
+    showToast('✅ Masraf eklendi!');
+  }catch(e){showToast('❌ '+e.message);}
+  btn.disabled=false; btn.textContent='Ekle';
+}
+
+async function delExp(id) {
+  if(!confirm('Bu masrafı silmek istediğinize emin misiniz?')) return;
+  await sbDelete('masraflar',`id=eq.${id}`);
+  masraflar=masraflar.filter(e=>e.id!==id);
+  renderExpList(); renderHeader();
+  showToast('🗑️ Silindi');
+}
+
+function openExpModal(idx) {
+  const e=masraflar[idx]; if(!e) return;
+  const k=katilimcilar.find(k=>k.id===e.katilimci_id);
+  const kIdx=katilimcilar.findIndex(k=>k.id===e.katilimci_id);
+  const photoUrl=e.photo?`${SB_URL}/storage/v1/object/public/${BUCKET}/${e.photo}`:null;
+  document.getElementById('modal').style.display='block';
+  document.getElementById('modal').innerHTML=`<div class="modal-overlay" onclick="closeModal()">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-hdr">
+        <div class="modal-title">${e.cat} ${e.aciklama}</div>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      ${photoUrl?`<img src="${photoUrl}" class="modal-img">`:`<div style="text-align:center;padding:20px;color:var(--mut)"><div style="font-size:36px">📷</div><p style="font-size:12px;margin-top:6px">Fiş eklenmemiş</p></div>`}
+      <div class="modal-info">
+        <div class="mir"><span class="mil">Tutar</span><span class="miv" style="color:var(--acc);font-family:'DM Mono',monospace">₺${fmt(e.amount)}</span></div>
+        <div class="mir"><span class="mil">Ödeyen</span><span class="miv">${k?.isim||'?'}</span></div>
+        <div class="mir"><span class="mil">Kategori</span><span class="miv">${e.cat}</span></div>
+        <div class="mir"><span class="mil">Tür</span><span class="miv">${e.sahsi?'🙋 Şahsi':'👥 Ortak'}</span></div>
+        <div class="mir"><span class="mil">Tarih</span><span class="miv" style="font-family:'DM Mono',monospace">${e.tarih}</span></div>
+      </div>
+      ${e.katilimci_id===mySession?.katilimciId?`<button onclick="delExp(${e.id});closeModal();" class="btn-reset">🗑️ Sil</button>`:''}
+    </div>
+  </div>`;
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━
+// HARİTA
+// ━━━━━━━━━━━━━━━━━━━━━━━━
+let searchTimer=null, pendingLat=null, pendingLng=null;
+
+async function searchPlace(query) {
+  clearTimeout(searchTimer);
+  const box=document.getElementById('searchResults');
+  if(!query||query.length<2){box.style.display='none';return;}
+  searchTimer=setTimeout(async()=>{
+    try{
+      const res=await fetch('https://nominatim.openstreetmap.org/search?format=json&q='+encodeURIComponent(query)+'&limit=5',{headers:{'Accept-Language':'tr'}});
+      const results=await res.json();
+      if(!results.length){box.style.display='none';return;}
+      box.style.display='block';
+      box.innerHTML=results.map(r=>{
+        const label=r.display_name.split(',').slice(0,3).join(', ');
+        const name=r.display_name.split(',')[0];
+        return '<div onclick="selectPlace(\''+name.replace(/'/g,"\\'")+"',"+r.lat+','+r.lon+')" style="padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--bd);font-size:13px">'+label+'</div>';
+      }).join('');
+    }catch(e){box.style.display='none';}
+  },400);
+}
+
+function selectPlace(name,lat,lng){
+  pendingLat=parseFloat(lat); pendingLng=parseFloat(lng);
+  document.getElementById('placeInput').value=name;
+  document.getElementById('searchResults').style.display='none';
+  const info=document.getElementById('selectedPlaceInfo');
+  info.style.display='block';
+  info.textContent='📍 '+parseFloat(lat).toFixed(4)+', '+parseFloat(lng).toFixed(4);
+  if(map) map.setView([lat,lng],14);
+}
+
+function initMap(){
+  if(map){map.remove();map=null;markers=[];}
+  map=L.map('mapContainer').setView([39.9,32.8],6);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(map);
+  map.on('click',function(e){
+    pendingLat=e.latlng.lat; pendingLng=e.latlng.lng;
+    if(window._tmpM) window._tmpM.remove();
+    window._tmpM=L.marker([pendingLat,pendingLng],{opacity:0.7}).addTo(map).bindPopup('"Güzergaha Ekle" butonuna basın').openPopup();
+    const inp=document.getElementById('placeInput');
+    if(!inp.value) inp.value=pendingLat.toFixed(4)+', '+pendingLng.toFixed(4);
+    const info=document.getElementById('selectedPlaceInfo');
+    info.style.display='block';
+    info.textContent='📍 '+pendingLat.toFixed(4)+', '+pendingLng.toFixed(4);
+  });
+  places.forEach(p=>{
+    if(!p.lat||!p.lng) return;
+    L.marker([p.lat,p.lng]).addTo(map).bindPopup('<b>'+p.isim+'</b>');
+  });
+  const withCoords=places.filter(p=>p.lat&&p.lng);
+  if(withCoords.length>0){
+    const bounds=L.latLngBounds(withCoords.map(p=>[p.lat,p.lng]));
+    if(bounds.isValid()) map.fitBounds(bounds,{padding:[30,30]});
+  }
+}
+
+function renderPlaces(){
+  setTimeout(initMap,100);
+  document.getElementById('placeCnt').textContent=places.length;
+  if(!places.length){
+    document.getElementById('placeList').innerHTML=`<div class="empty"><div class="ico">📍</div><p>Henüz yer eklenmedi.</p></div>`;
+    return;
+  }
+  let html = '';
+  for(let i=0;i<places.length;i++){
+    const p = places[i];
+    html += `<div class="place-item" id="pi_${p.id}">
+      <div style="width:26px;height:26px;border-radius:50%;background:var(--acc);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">${i+1}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.isim}</div>
+        ${p.lat?`<div style="font-size:10px;color:var(--mut);font-family:'DM Mono',monospace">📍 ${p.lat.toFixed(4)}, ${p.lng.toFixed(4)}</div>`:'<div style="font-size:10px;color:var(--mut)">koordinat yok</div>'}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:3px;flex-shrink:0">
+        ${i>0?`<button onclick="movePlace(${i},-1)" style="background:var(--sf2);border:1px solid var(--bd);color:var(--mut);width:28px;height:28px;border-radius:7px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center">▲</button>`:'<div style="width:28px;height:28px"></div>'}
+        ${i<places.length-1?`<button onclick="movePlace(${i},1)" style="background:var(--sf2);border:1px solid var(--bd);color:var(--mut);width:28px;height:28px;border-radius:7px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center">▼</button>`:'<div style="width:28px;height:28px"></div>'}
+      </div>
+      <button class="btn-del" onclick="delPlace(${p.id})">✕</button>
+    </div>`;
+    if(i < places.length-1){
+      const next = places[i+1];
+      if(p.lat && p.lng && next.lat && next.lng){
+        html += `<div style="display:flex;align-items:center;gap:8px;padding:5px 14px;font-size:11px;font-family:'DM Mono',monospace;color:var(--mut)">
+          <div style="width:1px;height:18px;background:var(--bd);margin-left:27px"></div>
+          <span id="distval_${p.id}_${next.id}">⏳ hesaplanıyor...</span>
+        </div>`;
+      } else {
+        html += `<div style="padding:2px 14px"><div style="width:1px;height:14px;background:var(--bd);margin-left:27px"></div></div>`;
+      }
+    }
+  }
+  document.getElementById('placeList').innerHTML = html;
+  // DOM güncellendikten sonra hesapla
+  setTimeout(calcDistances, 50);
+}
+
+async function movePlace(idx, dir) {
+  const newIdx = idx + dir;
+  if(newIdx < 0 || newIdx >= places.length) return;
+  const tmp = places[idx];
+  places[idx] = places[newIdx];
+  places[newIdx] = tmp;
+  // Cache'i temizle — sıra değişince yeniden hesaplansın
+  Object.keys(distCache).forEach(k => delete distCache[k]);
+  renderPlaces();
+  showToast(dir===-1?'⬆️ Yukarı taşındı':'⬇️ Aşağı taşındı');
+  for(let i=0;i<places.length;i++){
+    try{ await sbPatch('guzergahlar',`id=eq.${places[i].id}`,{sira:i}); }catch{}
+  }
+}
+
+const distCache = {};
+
+async function calcDistances(){
+  if(places.length < 2) return;
+  for(let i=0;i<places.length-1;i++){
+    const p=places[i], next=places[i+1];
+    if(!p.lat||!p.lng||!next.lat||!next.lng) continue;
+    const elId = 'distval_'+p.id+'_'+next.id;
+    const el = document.getElementById(elId);
+    if(!el) continue;
+    const cacheKey = p.id+'_'+next.id;
+    if(distCache[cacheKey]){
+      el.innerHTML = distCache[cacheKey];
+      el.style.color = 'var(--acc)';
+      continue;
+    }
+    // Önce kuş uçuşu göster
+    const kusDist = getDistKm(p.lat, p.lng, next.lat, next.lng);
+    el.innerHTML = `📏 ~${kusDist.toFixed(0)} km (hesaplanıyor...)`;
+
+    try{
+      // OSRM: koordinat sırası lon,lat şeklinde olmalı
+      const url = `https://router.project-osrm.org/route/v1/driving/${p.lng},${p.lat};${next.lng},${next.lat}?overview=false&alternatives=false`;
+      const res = await fetch(url, {signal: AbortSignal.timeout(8000)});
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      const data = await res.json();
+      if(data.code==='Ok' && data.routes?.length){
+        const route = data.routes[0];
+        const km = (route.distance/1000).toFixed(0);
+        const secs = Math.round(route.duration);
+        const h = Math.floor(secs/3600);
+        const m = Math.floor((secs%3600)/60);
+        const sure = h>0 ? `${h} saat ${m} dk` : `${m} dk`;
+        const txt = `🚗 ${km} km · ⏱️ ${sure}`;
+        distCache[cacheKey] = txt;
+        if(document.getElementById(elId)){
+          document.getElementById(elId).innerHTML = txt;
+          document.getElementById(elId).style.color = 'var(--acc)';
+        }
+      } else {
+        // Yol bulunamazsa kuş uçuşu göster
+        const txt = `📏 ~${kusDist.toFixed(0)} km (tahmini)`;
+        distCache[cacheKey] = txt;
+        if(document.getElementById(elId)) document.getElementById(elId).innerHTML = txt;
+      }
+    }catch(e){
+      // API çalışmazsa kuş uçuşu göster
+      const txt = `📏 ~${kusDist.toFixed(0)} km (tahmini)`;
+      distCache[cacheKey] = txt;
+      if(document.getElementById(elId)){
+        document.getElementById(elId).innerHTML = txt;
+        document.getElementById(elId).style.color = 'var(--mut)';
+      }
+    }
+    await new Promise(r=>setTimeout(r,300));
+  }
+}
+
+async function addPlace(){
+  const isim=document.getElementById('placeInput').value.trim();
+  if(!isim){showToast('⚠️ Yer adı girin!');return;}
+  const rows=await sbPost('guzergahlar',{trip_id:mySession.tripId,isim,lat:pendingLat||null,lng:pendingLng||null});
+  places.push(rows[0]);
+  document.getElementById('placeInput').value='';
+  document.getElementById('searchResults').style.display='none';
+  document.getElementById('selectedPlaceInfo').style.display='none';
+  if(window._tmpM){window._tmpM.remove();window._tmpM=null;}
+  pendingLat=null; pendingLng=null;
+  renderPlaces();
+  showToast('📍 Eklendi!');
+}
+
+async function getCurrentLocation(){
+  if(!navigator.geolocation){showToast('⚠️ Konum desteklenmiyor');return;}
+  showToast('📍 Konum alınıyor...');
+  navigator.geolocation.getCurrentPosition(async pos=>{
+    const lat=pos.coords.latitude, lng=pos.coords.longitude;
+    const isim=document.getElementById('placeInput').value.trim()||lat.toFixed(4)+', '+lng.toFixed(4);
+    const rows=await sbPost('guzergahlar',{trip_id:mySession.tripId,isim,lat,lng});
+    places.push(rows[0]);
+    document.getElementById('placeInput').value='';
+    renderPlaces();
+    showToast('📍 Konum eklendi!');
+  },()=>showToast('❌ Konum alınamadı'));
+}
+
+async function delPlace(id){
+  if(!confirm('Bu yeri silmek istiyor musunuz?')) return;
+  await sbDelete('guzergahlar',`id=eq.${id}`);
+  places=places.filter(p=>p.id!==id);
+  renderPlaces();
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━
+// NOTLAR
+// ━━━━━━━━━━━━━━━━━━━━━━━━
+function renderNotes(){
+  document.getElementById('noteCnt').textContent=notes.length;
+  document.getElementById('noteList').innerHTML=notes.length
+    ?[...notes].reverse().map(n=>`<div class="note-item">
+        <div style="display:flex;justify-content:space-between">
+          <div class="note-author">${n.yazar}</div>
+          ${n.katilimci_id===mySession?.katilimciId?`<button class="btn-del" onclick="delNote(${n.id})" style="font-size:12px">✕</button>`:''}
+        </div>
+        <div class="note-text">${n.mesaj.replace(/\n/g,'<br>')}</div>
+        <div class="note-time">${new Date(n.created_at).toLocaleString('tr-TR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</div>
+      </div>`).join('')
+    :`<div class="empty"><div class="ico">💬</div><p>Henüz not yok.</p></div>`;
+}
+
+async function addNote(){
+  const mesaj=document.getElementById('noteText').value.trim();
+  if(!mesaj){showToast('⚠️ Not yazın!');return;}
+  const rows=await sbPost('notlar',{trip_id:mySession.tripId,katilimci_id:mySession.katilimciId,yazar:mySession.name,mesaj});
+  notes.push(rows[0]);
+  document.getElementById('noteText').value='';
+  renderNotes();
+  showToast('💬 Not eklendi!');
+}
+
+async function delNote(id){
+  if(!confirm('Bu notu silmek istiyor musunuz?')) return;
+  await sbDelete('notlar',`id=eq.${id}`);
+  notes=notes.filter(n=>n.id!==id);
+  renderNotes();
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━
+// AYARLAR
+// ━━━━━━━━━━━━━━━━━━━━━━━━
+function renderSettings(){
+  document.getElementById('settingsCode').textContent=currentTrip?.davet_kodu||'------';
+  const myK=katilimcilar.find(k=>k.id===mySession?.katilimciId);
+  document.getElementById('myIban').value=myK?.iban||'';
+  const isAdmin = mySession?.rol==='admin';
+  document.getElementById('katilimciList').innerHTML=katilimcilar.map((k,i)=>{
+    const myCnt=masraflar.filter(e=>e.katilimci_id===k.id).length;
+    const isMe = k.id===mySession?.katilimciId;
+    return `<div class="katilimci-item">
+      <div class="k-avatar" style="background:${getColor(i)}">${getInitial(k.isim)}</div>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:700">${k.isim} ${k.rol==='admin'?'👑':''}</div>
+        <div style="font-size:10px;color:var(--mut);font-family:'DM Mono',monospace">${k.email||''} · ${myCnt} masraf${k.iban?' · IBAN ✓':''}</div>
+      </div>
+      ${isMe?'<span style="font-size:11px;color:var(--grn);font-weight:700">Ben</span>':''}
+      ${isAdmin&&!isMe?`<button onclick="removeKatilimci(${k.id},'${k.isim}')" style="background:none;border:1px solid #b8402a35;color:var(--red);padding:4px 8px;border-radius:8px;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;cursor:pointer;margin-left:4px">Çıkar</button>`:''}
+    </div>`;
+  }).join('');
+}
+
+async function removeKatilimci(id, isim) {
+  if(!confirm(`"${isim}" kişisini seyahatten çıkarmak istediğinize emin misiniz?
+Bu kişinin masrafları silinmez.`)) return;
+  try {
+    await sbPatch('katilimcilar',`id=eq.${id}`,{session_id:'removed_'+Date.now()});
+    katilimcilar = katilimcilar.filter(k=>k.id!==id);
+    renderAll();
+    showToast('✅ '+isim+' seyahatten çıkarıldı');
+  } catch(e) { showToast('❌ '+e.message); }
+}
+
+async function saveMyIban(){
+  const iban=document.getElementById('myIban').value.trim();
+  await sbPatch('katilimcilar',`id=eq.${mySession.katilimciId}`,{iban});
+  const k=katilimcilar.find(k=>k.id===mySession.katilimciId);
+  if(k) k.iban=iban;
+  mySession.iban=iban;
+  localStorage.setItem('mySession',JSON.stringify(mySession));
+  showToast('✅ IBAN kaydedildi!');
+}
+
+function showTripInfo(){
+  const code=currentTrip?.davet_kodu||'------';
+  document.getElementById('modal').style.display='block';
+  document.getElementById('modal').innerHTML=`<div class="modal-overlay" onclick="closeModal()">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-hdr"><div class="modal-title">🔑 Davet Kodu</div><button class="modal-close" onclick="closeModal()">✕</button></div>
+      <div class="code-box" style="margin-bottom:16px">
+        <div class="t-lbl">${currentTrip?.isim}</div>
+        <div class="code-val">${code}</div>
+        <div class="code-hint">Bu kodu arkadaşlarınızla paylaşın</div>
+      </div>
+      <button class="sbtn" onclick="shareCode();closeModal()">📤 Kodu Paylaş</button>
+    </div>
+  </div>`;
+}
+
+function shareCode(){
+  const code=currentTrip?.davet_kodu||'';
+  const text=`"${currentTrip?.isim}" seyahatine katılmak için İşimizin Adı Ne? uygulamasına gir ve bu kodu kullan: ${code}`;
+  if(navigator.share) navigator.share({title:'Seyahat Daveti',text});
+  else navigator.clipboard.writeText(text).then(()=>showToast('📋 Kod kopyalandı!'));
+}
+
+function leaveTrip(){
+  if(!confirm('Seyahatten ayrılmak istediğinize emin misiniz?')) return;
+  localStorage.removeItem('mySession');
+  mySession=null;
+  document.getElementById('app').style.display='none';
+  document.getElementById('welcomeScreen').style.display='flex';
+  document.getElementById('wName').value='';
+  document.getElementById('wCode').value='';
+  document.getElementById('wTripName').value='';
+}
+
+async function resetExpenses(){
+  if(!confirm('Tüm masraflar silinecek. Emin misiniz?')) return;
+  for(const e of masraflar){
+    await sbDelete('masraflar',`id=eq.${e.id}`);
+  }
+  masraflar=[];
+  renderExpList(); renderHeader();
+  showToast('🗑️ Sıfırlandı');
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━
+// FOTOĞRAF
+// ━━━━━━━━━━━━━━━━━━━━━━━━
+async function uploadPhoto(file,expId){
+  const ext=(file.name||'foto.jpg').split('.').pop().toLowerCase();
+  const safeExt=['jpg','jpeg','png','gif','webp'].includes(ext)?ext:'jpg';
+  const path=`fis_${expId}.${safeExt}`;
+  const mime=file.type&&file.type.startsWith('image/')?file.type:'image/jpeg';
+  const ab=await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=()=>rej(new Error('Okunamadı'));r.readAsArrayBuffer(file);});
+  const r=await fetch(`${SB_URL}/storage/v1/object/${BUCKET}/${path}`,{method:'POST',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':mime,'x-upsert':'true'},body:ab});
+  if(!r.ok){const t=await r.text();throw new Error('Upload '+r.status+': '+t);}
+  return path;
+}
+
+function onPhotoSelect(e){
+  const file=e.target.files&&e.target.files[0]; if(!file) return;
+  pendingPhoto=file;
+  const url=URL.createObjectURL(file);
+  document.getElementById('photoPreviewArea').innerHTML=`<div style="position:relative;margin-bottom:8px"><img src="${url}" class="photo-preview" onload="URL.revokeObjectURL(this.src)"><button onclick="clearPhoto()" style="position:absolute;top:6px;right:6px;background:#00000088;border:none;color:#fff;border-radius:50%;width:26px;height:26px;font-size:13px;cursor:pointer">✕</button></div>`;
+  document.querySelector('.photo-upload-area').style.display='none';
+}
+
+function clearPhoto(){
+  pendingPhoto=null;
+  document.getElementById('photoPreviewArea').innerHTML='';
+  document.getElementById('photoInput').value='';
+  document.querySelector('.photo-upload-area').style.display='';
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━
+// ŞAHSİ TOGGLE
+// ━━━━━━━━━━━━━━━━━━━━━━━━
+function toggleSahsi(){
+  const c=document.getElementById('sahsiCheck');
+  const l=document.getElementById('sahsiLabel');
+  const on=c.textContent==='✓';
+  if(on){c.textContent='';c.style.background='var(--sf)';c.style.borderColor='var(--bd)';l.style.background='var(--sf2)';l.style.borderColor='var(--bd)';}
+  else{c.textContent='✓';c.style.background='var(--red)';c.style.borderColor='var(--red)';c.style.color='#fff';l.style.background='#b8402a10';l.style.borderColor='var(--red)';}
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━
+// ÖNERİLER
+// ━━━━━━━━━━━━━━━━━━━━━━━━
+let oneriMap = null;
+let oneriMarker = null;
+let oneriCenter = null; // {lat, lng}
+
+function initOneriMap() {
+  setTimeout(() => {
+    const el = document.getElementById('oneriMap');
+    el.style.display = 'block';
+    if (oneriMap) { oneriMap.invalidateSize(); return; }
+    oneriMap = L.map('oneriMap').setView([39.9, 32.8], 6);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution:'© OpenStreetMap'}).addTo(oneriMap);
+    oneriMap.on('click', function(e) {
+      oneriCenter = {lat: e.latlng.lat, lng: e.latlng.lng};
+      if(oneriMarker) oneriMarker.remove();
+      oneriMarker = L.circle([oneriCenter.lat, oneriCenter.lng], {radius:1500, color:'var(--acc)', fillOpacity:0.1}).addTo(oneriMap);
+      L.marker([oneriCenter.lat, oneriCenter.lng]).addTo(oneriMap).bindPopup('Arama merkezi').openPopup();
+      fetchOneriler(oneriCenter.lat, oneriCenter.lng);
+    });
+    oneriMap.on('click', () => {});
+  }, 100);
+}
+
+async function searchOneri() {
+  const sehir = document.getElementById('oneriSehir').value.trim();
+  if(!sehir) { showToast('⚠️ Şehir veya bölge yazın!'); return; }
+  document.getElementById('oneriSonuclar').innerHTML = '<div style="text-align:center;padding:20px;color:var(--mut)">🔍 Aranıyor...</div>';
+  try {
+    const res = await fetch('https://nominatim.openstreetmap.org/search?format=json&q='+encodeURIComponent(sehir)+'&limit=1', {headers:{'Accept-Language':'tr'}});
+    const data = await res.json();
+    if(!data.length) { showToast('❌ Yer bulunamadı!'); return; }
+    const lat = parseFloat(data[0].lat);
+    const lng = parseFloat(data[0].lon);
+    oneriCenter = {lat, lng};
+    if(oneriMap) {
+      oneriMap.setView([lat,lng], 13);
+      if(oneriMarker) oneriMarker.remove();
+      oneriMarker = L.circle([lat,lng], {radius:1500, color:'#b07d2a', fillOpacity:0.1}).addTo(oneriMap);
+    }
+    await fetchOneriler(lat, lng);
+  } catch(e) { showToast('❌ '+e.message); }
+}
+
+async function oneriKonumdan() {
+  if(!navigator.geolocation) { showToast('⚠️ Konum desteklenmiyor'); return; }
+  showToast('📍 Konum alınıyor...');
+  navigator.geolocation.getCurrentPosition(async pos => {
+    const lat = pos.coords.latitude, lng = pos.coords.longitude;
+    oneriCenter = {lat, lng};
+    if(oneriMap) {
+      oneriMap.setView([lat,lng], 14);
+      if(oneriMarker) oneriMarker.remove();
+      oneriMarker = L.circle([lat,lng], {radius:1000, color:'#b07d2a', fillOpacity:0.1}).addTo(oneriMap);
+    }
+    await fetchOneriler(lat, lng);
+  }, () => showToast('❌ Konum alınamadı'));
+}
+
+async function fetchOneriler(lat, lng) {
+  const kat = document.getElementById('oneriKategori').value;
+  const radius = 1500;
+  document.getElementById('oneriSonuclar').innerHTML = '<div style="text-align:center;padding:24px;color:var(--mut)"><div style="font-size:28px;margin-bottom:8px">⏳</div>Yemek yerleri aranıyor...</div>';
+
+  // Overpass API sorgusu
+  const query = `[out:json][timeout:15];
+    (
+      node["amenity"="${kat}"](around:${radius},${lat},${lng});
+      node["amenity"="restaurant"](around:${radius},${lat},${lng});
+      node["cuisine"](around:${radius},${lat},${lng});
+    );
+    out body 50;`;
+
+  try {
+    const res = await fetch('https://overpass-api.de/api/interpreter', {
+      method: 'POST',
+      body: query
+    });
+    const data = await res.json();
+    const elements = data.elements || [];
+
+    if(!elements.length) {
+      document.getElementById('oneriSonuclar').innerHTML = '<div class="empty"><div class="ico">🍽️</div><p>Bu bölgede kayıtlı yer bulunamadı.<br>Farklı bir bölge deneyin.</p></div>';
+      return;
+    }
+
+    // İsimli olanları filtrele ve sırala
+    const named = elements
+      .filter(e => e.tags?.name)
+      .map(e => ({
+        id: e.id,
+        name: e.tags.name,
+        lat: e.lat, lng: e.lon,
+        cuisine: e.tags.cuisine || '',
+        phone: e.tags.phone || e.tags['contact:phone'] || '',
+        website: e.tags.website || e.tags['contact:website'] || '',
+        opening: e.tags.opening_hours || '',
+        stars: e.tags.stars || '',
+        rating: parseFloat(e.tags['rating'] || e.tags['stars'] || 0),
+        dist: getDistKm(lat, lng, e.lat, e.lon)
+      }))
+      .sort((a,b) => a.dist - b.dist)
+      .slice(0, 15);
+
+    if(!named.length) {
+      document.getElementById('oneriSonuclar').innerHTML = '<div class="empty"><div class="ico">🍽️</div><p>İsimli yer bulunamadı.<br>Farklı kategori veya bölge deneyin.</p></div>';
+      return;
+    }
+
+    // Haritaya pin ekle
+    if(oneriMap) {
+      named.forEach((p,i) => {
+        if(!p.lat||!p.lng) return;
+        const icon = L.divIcon({
+          html: `<div style="background:var(--acc,#b07d2a);color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;border:2px solid #fff;box-shadow:0 2px 4px #0004">${i+1}</div>`,
+          className: '',
+          iconSize: [24,24],
+          iconAnchor: [12,12]
+        });
+        L.marker([p.lat, p.lng], {icon})
+          .addTo(oneriMap)
+          .bindPopup(`<b>${p.name}</b>${p.cuisine?'<br>'+p.cuisine:''}<br><small>${p.dist.toFixed(1)} km uzakta</small>`);
+      });
+    }
+
+    document.getElementById('oneriSonuclar').innerHTML =
+      `<div class="slabel">${named.length} Yer Bulundu</div>` +
+      named.map((p,i) => `
+        <div style="background:var(--sf);border:1px solid var(--bd);border-radius:12px;padding:13px 14px;margin-bottom:8px">
+          <div style="display:flex;align-items:flex-start;gap:10px">
+            <div style="width:28px;height:28px;border-radius:50%;background:#b07d2a18;color:#b07d2a;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">${i+1}</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:14px;font-weight:700">${p.name}</div>
+              <div style="font-size:11px;color:var(--mut);margin-top:2px">
+                ${p.cuisine?'🍴 '+p.cuisine.replace(';',' · ')+' · ':''}📍 ${p.dist.toFixed(1)} km uzakta
+              </div>
+              ${p.opening?`<div style="font-size:10px;color:var(--mut);font-family:'DM Mono',monospace;margin-top:3px">🕐 ${p.opening}</div>`:''}
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
+            <a href="https://www.google.com/maps/search/${encodeURIComponent(p.name+' '+p.cuisine)}/@${p.lat},${p.lng},16z" target="_blank"
+              style="background:var(--sf2);border:1px solid var(--bd);color:var(--txt);padding:6px 12px;border-radius:8px;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;text-decoration:none">
+              🗺️ Google Maps
+            </a>
+            <button onclick="addToRoute('${p.name.replace(/'/g,"\'")}',${p.lat},${p.lng})"
+              style="background:#2d7a4f18;border:1px solid #2d7a4f40;color:#2d7a4f;padding:6px 12px;border-radius:8px;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;cursor:pointer">
+              📍 Güzergaha Ekle
+            </button>
+          </div>
+        </div>`).join('');
+
+  } catch(e) {
+    document.getElementById('oneriSonuclar').innerHTML = '<div class="empty"><div class="ico">❌</div><p>Arama sırasında hata oluştu.<br>'+e.message+'</p></div>';
+  }
+}
+
+async function addToRoute(isim, lat, lng) {
+  try {
+    const rows = await sbPost('guzergahlar', {trip_id:mySession.tripId, isim, lat, lng, sira:places.length});
+    places.push(rows[0]);
+    showToast('📍 Güzergaha eklendi!');
+  } catch(e) { showToast('❌ '+e.message); }
+}
+
+function getDistKm(lat1, lng1, lat2, lng2) {
+  const R = 6371;
+  const dLat = (lat2-lat1)*Math.PI/180;
+  const dLng = (lng2-lng1)*Math.PI/180;
+  const a = Math.sin(dLat/2)*Math.sin(dLat/2) +
+    Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)*Math.sin(dLng/2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━
+// UTILS
+// ━━━━━━━━━━━━━━━━━━━━━━━━
+function goTab(name,btn){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('p-'+name).classList.add('active');
+  btn.classList.add('active');
+  if(name==='ozet') renderSummary();
+  if(name==='guzergah') renderPlaces();
+  if(name==='notlar') renderNotes();
+  if(name==='ayarlar') renderSettings();
+  if(name==='oneriler') initOneriMap();
+}
+function closeModal(){document.getElementById('modal').style.display='none';document.getElementById('modal').innerHTML='';}
+function sync(s,t){document.getElementById('sdot').className='sdot '+s;document.getElementById('stxt').textContent=t;}
+function fmt(n){return n.toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+function copyIban(btn,txt){navigator.clipboard.writeText(txt).then(()=>{btn.textContent='✅';btn.style.color='var(--grn)';setTimeout(()=>{btn.textContent='📋 Kopyala';btn.style.color='';},2000);});}
+
+// Periyodik sync
+setInterval(async()=>{
+  if(saving||!mySession) return;
+  try{
+    const [mList,nList,kList]=await Promise.all([
+      sbGet('masraflar',`trip_id=eq.${mySession.tripId}&order=created_at.asc`),
+      sbGet('notlar',`trip_id=eq.${mySession.tripId}&order=created_at.asc`),
+      sbGet('katilimcilar',`trip_id=eq.${mySession.tripId}&order=created_at.asc`)
+    ]);
+    const changed = mList.length!==masraflar.length || nList.length!==notes.length || kList.length!==katilimcilar.length;
+    if(changed){
+      masraflar=mList; notes=nList; katilimcilar=kList;
+      // Kendi indexini güncelle
+      const myIdx = katilimcilar.findIndex(k=>k.id===mySession.katilimciId);
+      if(myIdx>=0) whoIdx=myIdx;
+      renderAll();
+      if(kList.length!==katilimcilar.length) showToast('👋 Yeni katılımcı!');
+      else showToast('🔄 Güncellendi!');
+    }
+  }catch{}
+},10000);
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━
+// BAŞLAT
+// ━━━━━━━━━━━━━━━━━━━━━━━━
+(async()=>{
+  // Daha önce giriş yaptı mı?
+  const saved=localStorage.getItem('mySession');
+  if(saved){
+    try{
+      mySession=JSON.parse(saved);
+      // Session hala geçerli mi?
+      const rows=await sbGet('katilimcilar',`id=eq.${mySession.katilimciId}&session_id=eq.${mySession.sessionId}`);
+      if(rows.length){
+        document.getElementById('welcomeScreen').style.display='none';
+        document.getElementById('app').style.display='block';
+        await loadAll();
+        return;
+      }
+    }catch{}
+    localStorage.removeItem('mySession');
+  }
+  // Giriş ekranını göster
+  document.getElementById('welcomeScreen').style.display='flex';
+})();
+</script>
+</body>
+</html>
