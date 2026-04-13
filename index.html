@@ -215,8 +215,8 @@ input::placeholder,textarea::placeholder{color:var(--mut)}
   <button class="tab" onclick="goTab('ozet',this)">📊 Özet</button>
   <button class="tab" onclick="goTab('guzergah',this)">🗺️ Güzergah</button>
   <button class="tab" onclick="goTab('notlar',this)">💬 Notlar</button>
-  <button class="tab" onclick="goTab('ayarlar',this)">⚙️ Ayarlar</button>
   <button class="tab" onclick="goTab('mekanlar',this)">⭐ Mekanlar</button>
+  <button class="tab" onclick="goTab('ayarlar',this)">⚙️ Ayarlar</button>
 </div>
 
 <div class="main">
@@ -320,7 +320,11 @@ input::placeholder,textarea::placeholder{color:var(--mut)}
       <div style="margin-bottom:8px">
         <div style="font-size:11px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Puanınız</div>
         <div id="starRow" style="display:flex;gap:8px">
-          ${[1,2,3,4,5].map(s=>`<button onclick="setMekanStar(${s})" id="star${s}" style="font-size:28px;background:none;border:none;cursor:pointer;padding:2px;opacity:0.3;transition:all .15s">⭐</button>`).join('')}
+          <button onclick="setMekanStar(1)" id="star1" style="font-size:28px;background:none;border:none;cursor:pointer;padding:4px;opacity:0.3;transition:all .15s">⭐</button>
+          <button onclick="setMekanStar(2)" id="star2" style="font-size:28px;background:none;border:none;cursor:pointer;padding:4px;opacity:0.3;transition:all .15s">⭐</button>
+          <button onclick="setMekanStar(3)" id="star3" style="font-size:28px;background:none;border:none;cursor:pointer;padding:4px;opacity:0.3;transition:all .15s">⭐</button>
+          <button onclick="setMekanStar(4)" id="star4" style="font-size:28px;background:none;border:none;cursor:pointer;padding:4px;opacity:0.3;transition:all .15s">⭐</button>
+          <button onclick="setMekanStar(5)" id="star5" style="font-size:28px;background:none;border:none;cursor:pointer;padding:4px;opacity:0.3;transition:all .15s">⭐</button>
         </div>
       </div>
       <textarea id="mekanYorum" placeholder="Yorumunuz... (isteğe bağlı)" rows="2" style="margin-bottom:8px"></textarea>
