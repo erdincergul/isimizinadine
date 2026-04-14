@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>İşimizin Adı Ne? — Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f2ece0;--sf:#fffdf6;--sf2:#ede6d6;--bd:#d8cfba;--acc:#b07d2a;--red:#b8402a;--grn:#2d7a4f;--txt:#26200f;--mut:#8a7a5e;--r:14px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh}
+
+.login-screen{position:fixed;inset:0;background:linear-gradient(160deg,#f5edd8,#e8dcc8 50%,#d4c5a9);display:flex;align-items:center;justify-content:center;z-index:100}
+.login-card{background:var(--sf);border:1px solid var(--bd);border-radius:24px;padding:40px 32px;width:100%;max-width:360px;box-shadow:0 8px 40px #0000001a;text-align:center}
+.login-logo{font-size:48px;margin-bottom:12px}
+.login-title{font-size:22px;font-weight:800;color:var(--acc);margin-bottom:6px}
+.login-sub{font-size:13px;color:var(--mut);margin-bottom:28px}
+.finput{background:var(--sf2);border:1.5px solid var(--bd);border-radius:12px;color:var(--txt);font-family:'Syne',sans-serif;font-size:15px;padding:14px 16px;outline:none;width:100%;margin-bottom:12px;-webkit-appearance:none}
+.finput:focus{border-color:var(--acc)}
+.login-btn{width:100%;padding:14px;background:var(--acc);color:#fffdf6;border:none;border-radius:14px;font-family:'Syne',sans-serif;font-size:16px;font-weight:800;cursor:pointer}
+.err{color:var(--red);font-size:13px;margin-top:8px;display:none}
+
+.app{display:none;max-width:900px;margin:0 auto;padding:24px 16px}
+.hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px}
+.hdr-title{font-size:22px;font-weight:800;color:var(--acc)}
+.hdr-sub{font-size:12px;color:var(--mut);font-family:'DM Mono',monospace;margin-top:2px}
+.logout-btn{background:var(--sf2);border:1px solid var(--bd);color:var(--mut);padding:8px 14px;border-radius:10px;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;cursor:pointer}
+
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:28px}
+.stat-card{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:18px;text-align:center}
+.stat-num{font-family:'DM Mono',monospace;font-size:32px;font-weight:700;color:var(--acc)}
+.stat-lbl{font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.8px;margin-top:4px}
+
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--mut);margin-bottom:12px;display:flex;align-items:center;gap:10px}
+.section-title::after{content:'';flex:1;height:1px;background:var(--bd)}
+
+.trip-card{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:18px;margin-bottom:12px;cursor:pointer;transition:all .2s}
+.trip-card:hover{border-color:var(--acc);box-shadow:0 2px 12px #b07d2a18}
+.trip-hdr{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.trip-name{font-size:16px;font-weight:800}
+.trip-code{font-family:'DM Mono',monospace;font-size:12px;background:var(--sf2);border:1px solid var(--bd);padding:3px 10px;border-radius:20px;color:var(--mut);letter-spacing:2px}
+.trip-date{font-size:11px;color:var(--mut);font-family:'DM Mono',monospace;margin-left:auto}
+.trip-stats{display:flex;gap:16px;flex-wrap:wrap}
+.ts{font-size:12px;color:var(--mut)}
+.ts strong{color:var(--txt)}
+
+.katilimci-list{margin-top:12px;padding-top:12px;border-top:1px solid var(--bd);display:none}
+.k-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--sf2)}
+.k-row:last-child{border-bottom:none}
+.k-avatar{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0}
+.k-info{flex:1}
+.k-name{font-size:13px;font-weight:700}
+.k-email{font-size:10px;color:var(--mut);font-family:'DM Mono',monospace}
+.badge{font-size:10px;padding:2px 8px;border-radius:20px;font-weight:700}
+.badge-admin{background:#b07d2a18;color:var(--acc)}
+.badge-onay{background:#2d7a4f18;color:var(--grn)}
+.badge-bekle{background:#e0782018;color:#e07820}
+.badge-engel{background:#b8402a18;color:var(--red)}
+
+.loading{text-align:center;padding:40px;color:var(--mut)}
+.loading-ico{font-size:32px;margin-bottom:8px;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.refresh-btn{background:var(--acc);color:#fff;border:none;padding:8px 16px;border-radius:10px;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;cursor:pointer}
+</style>
+</head>
+<body>
+
+<!-- GİRİŞ -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">🔐</div>
+    <div class="login-title">Admin Paneli</div>
+    <div class="login-sub">İşimizin Adı Ne?</div>
+    <input class="finput" type="password" id="adminPass" placeholder="Şifre" onkeydown="if(event.key==='Enter')login()">
+    <button class="login-btn" onclick="login()">Giriş →</button>
+    <div class="err" id="loginErr">Şifre hatalı!</div>
+  </div>
+</div>
+
+<!-- UYGULAMA -->
+<div class="app" id="adminApp">
+  <div class="hdr">
+    <div>
+      <div class="hdr-title">🚗 Admin Paneli</div>
+      <div class="hdr-sub" id="lastUpdate">Yükleniyor...</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="refresh-btn" onclick="loadData()">🔄 Yenile</button>
+      <button class="logout-btn" onclick="logout()">Çıkış</button>
+    </div>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-num" id="statSeyahat">—</div>
+      <div class="stat-lbl">Toplam Seyahat</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="statKatilimci">—</div>
+      <div class="stat-lbl">Toplam Kullanıcı</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="statMasraf">—</div>
+      <div class="stat-lbl">Toplam Harcama</div>
+    </div>
+  </div>
+
+  <div class="section-title">Seyahatler</div>
+  <div id="tripList"><div class="loading"><div class="loading-ico">⏳</div><div>Yükleniyor...</div></div></div>
+</div>
+
+<script>
+const SB_URL = 'https://iiqavkrubmxckhesvlne.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlpcWF2a3J1Ym14Y2toZXN2bG5lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNjUzODMsImV4cCI6MjA5MTY0MTM4M30.tsFKpyBWb7wJUB1Pr0hEpABmebKzNJNA4wVOW-prQxY';
+const H = {'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
+
+// Admin şifresi - değiştirin!
+const ADMIN_PASS = 'isimizinadine2025';
+
+async function sbGet(table, filter='') {
+  const r = await fetch(`${SB_URL}/rest/v1/${table}?${filter}`,{headers:H});
+  return r.json();
+}
+
+function login() {
+  const pass = document.getElementById('adminPass').value;
+  const err = document.getElementById('loginErr');
+  if(pass === ADMIN_PASS) {
+    sessionStorage.setItem('adminAuth','1');
+    document.getElementById('loginScreen').style.display='none';
+    document.getElementById('adminApp').style.display='block';
+    loadData();
+  } else {
+    err.style.display='block';
+    setTimeout(()=>err.style.display='none',2000);
+  }
+}
+
+function logout() {
+  sessionStorage.removeItem('adminAuth');
+  location.reload();
+}
+
+const COLORS = ['#b07d2a','#b8402a','#2d7a4f','#5b6abf','#8b4ab8','#2a8ab8'];
+
+async function loadData() {
+  document.getElementById('lastUpdate').textContent = 'Yükleniyor...';
+  try {
+    const [seyahatler, katilimcilar, masraflar] = await Promise.all([
+      sbGet('seyahatler','order=created_at.desc'),
+      sbGet('katilimcilar','order=created_at.asc'),
+      sbGet('masraflar','order=created_at.asc'),
+    ]);
+
+    // İstatistikler
+    document.getElementById('statSeyahat').textContent = seyahatler.length;
+    document.getElementById('statKatilimci').textContent = katilimcilar.length;
+    const toplamTL = masraflar.filter(m=>!m.sahsi).reduce((s,m)=>s+m.amount,0);
+    document.getElementById('statMasraf').textContent = '₺'+Math.round(toplamTL).toLocaleString('tr-TR');
+    document.getElementById('lastUpdate').textContent = 'Son güncelleme: '+new Date().toLocaleTimeString('tr-TR');
+
+    // Seyahat listesi
+    const tripList = document.getElementById('tripList');
+    if(!seyahatler.length) {
+      tripList.innerHTML = '<div class="loading">Henüz seyahat yok.</div>';
+      return;
+    }
+
+    tripList.innerHTML = seyahatler.map((s,si) => {
+      const trips_k = katilimcilar.filter(k=>k.trip_id===s.id);
+      const trips_m = masraflar.filter(m=>m.trip_id===s.id&&!m.sahsi);
+      const toplam = trips_m.reduce((sum,m)=>sum+m.amount,0);
+      const bekleyen = trips_k.filter(k=>k.durum==='beklemede').length;
+      const tarih = new Date(s.created_at).toLocaleDateString('tr-TR',{day:'2-digit',month:'2-digit',year:'numeric'});
+
+      return `<div class="trip-card" onclick="toggleTrip('t${si}')">
+        <div class="trip-hdr">
+          <div style="font-size:20px">🚗</div>
+          <div>
+            <div class="trip-name">${s.isim}</div>
+            <div style="font-size:11px;color:var(--mut);margin-top:2px">Oluşturulma: ${tarih}</div>
+          </div>
+          <div class="trip-code">${s.davet_kodu}</div>
+          <div class="trip-date">${tarih}</div>
+        </div>
+        <div class="trip-stats">
+          <div class="ts">👥 <strong>${trips_k.length}</strong> katılımcı</div>
+          <div class="ts">💸 <strong>${trips_m.length}</strong> masraf</div>
+          <div class="ts">💰 <strong>₺${toplam.toLocaleString('tr-TR',{maximumFractionDigits:0})}</strong> toplam</div>
+          ${bekleyen>0?`<div class="ts">⏳ <strong style="color:#e07820">${bekleyen}</strong> bekleyen</div>`:''}
+        </div>
+        <div class="katilimci-list" id="t${si}">
+          ${trips_k.map((k,ki)=>`
+            <div class="k-row">
+              <div class="k-avatar" style="background:${COLORS[ki%COLORS.length]}">${k.isim.charAt(0).toUpperCase()}</div>
+              <div class="k-info">
+                <div class="k-name">${k.isim}</div>
+                <div class="k-email">${k.email||'—'}</div>
+              </div>
+              <span class="badge ${k.rol==='admin'?'badge-admin':k.durum==='onaylandi'?'badge-onay':k.durum==='beklemede'?'badge-bekle':'badge-engel'}">
+                ${k.rol==='admin'?'👑 Admin':k.durum==='onaylandi'?'✅ Onaylı':k.durum==='beklemede'?'⏳ Bekliyor':'🚫 Engelli'}
+              </span>
+              <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--acc)">
+                ₺${masraflar.filter(m=>m.katilimci_id===k.id&&!m.sahsi).reduce((s,m)=>s+m.amount,0).toLocaleString('tr-TR',{maximumFractionDigits:0})}
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>`;
+    }).join('');
+
+  } catch(e) {
+    document.getElementById('tripList').innerHTML = '<div class="loading">❌ Hata: '+e.message+'</div>';
+  }
+}
+
+function toggleTrip(id) {
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.style.display = el.style.display==='block' ? 'none' : 'block';
+}
+
+// Oturum kontrolü
+if(sessionStorage.getItem('adminAuth')==='1') {
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('adminApp').style.display='block';
+  loadData();
+}
+</script>
+</body>
+</html>
