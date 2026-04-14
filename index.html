@@ -223,7 +223,7 @@ input::placeholder,textarea::placeholder{color:var(--mut)}
   <button class="tab active" onclick="goTab('masraflar',this)">💸 Masraflar</button>
   <button class="tab" onclick="goTab('ozet',this)">📊 Özet</button>
   <button class="tab" onclick="goTab('guzergah',this)">🗺️ Güzergah</button>
-  <button class="tab" onclick="goTab('notlar',this)">💬 Notlar</button>
+  <button class="tab" onclick="goTab('notlar',this)">💬 Yazışma</button>
   <button class="tab w5" onclick="goTab('mekanlar',this)">⭐ Mekanlar</button>
   <button class="tab w5" onclick="goTab('galeri',this)">📷 Galeri</button>
   <button class="tab w5" onclick="goTab('yerler',this)">📍 Yerler</button>
@@ -309,13 +309,13 @@ input::placeholder,textarea::placeholder{color:var(--mut)}
   <!-- NOTLAR -->
   <div id="p-notlar" class="panel">
     <div class="card">
-      <div class="ctitle">💬 Not Ekle</div>
+      <div class="ctitle">💬 Yazışma</div>
       <div class="note-row">
         <textarea id="noteText" placeholder="Yorumunuzu yazın..." rows="2"></textarea>
         <button class="note-send" onclick="addNote()">➤</button>
       </div>
     </div>
-    <div class="slabel">Notlar <span class="stag" id="noteCnt">0</span></div>
+    <div class="slabel">Yazışmalar <span class="stag" id="noteCnt">0</span></div>
     <div id="noteList"></div>
   </div>
 
@@ -528,8 +528,8 @@ async function createTrip() {
 
   try {
     await sbPost('seyahatler',{id:tripId, isim:tripName, davet_kodu:davetKodu, owner_session:sessionId});
-    const rows = await sbPost('katilimcilar',{trip_id:tripId, isim:name, email, session_id:sessionId, iban:'', rol:'admin'});
-    mySession = {name, email, sessionId, tripId, katilimciId:rows[0].id, iban:'', rol:'admin'};
+    const rows = await sbPost('katilimcilar',{trip_id:tripId, isim:name, email, session_id:sessionId, iban:'', rol:'admin', durum:'onaylandi'});
+    mySession = {name, email, sessionId, tripId, katilimciId:rows[0].id, iban:'', rol:'admin', durum:'onaylandi'};
     localStorage.setItem('mySession', JSON.stringify(mySession));
     document.getElementById('welcomeScreen').style.display='none';
     document.getElementById('app').style.display='block';
@@ -1170,17 +1170,17 @@ function renderNotes(){
         <div class="note-text">${n.mesaj.replace(/\n/g,'<br>')}</div>
         <div class="note-time">${new Date(n.created_at).toLocaleString('tr-TR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</div>
       </div>`).join('')
-    :`<div class="empty"><div class="ico">💬</div><p>Henüz not yok.</p></div>`;
+    :`<div class="empty"><div class="ico">💬</div><p>Henüz mesaj yok.</p></div>`;
 }
 
 async function addNote(){
   const mesaj=document.getElementById('noteText').value.trim();
-  if(!mesaj){showToast('⚠️ Not yazın!');return;}
+  if(!mesaj){showToast('⚠️ Mesaj yazın!');return;}
   const rows=await sbPost('notlar',{trip_id:mySession.tripId,katilimci_id:mySession.katilimciId,yazar:mySession.name,mesaj});
   notes.push(rows[0]);
   document.getElementById('noteText').value='';
   renderNotes();
-  showToast('💬 Not eklendi!');
+  showToast('💬 Mesaj eklendi!');
 }
 
 async function delNote(id){
