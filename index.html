@@ -211,14 +211,17 @@ input::placeholder,textarea::placeholder{color:var(--mut)}
 <div class="sync-bar">
   <div class="sdot loading" id="sdot"></div>
   <span id="stxt">Bağlanıyor...</span>
-  <button onclick="loadAll()" style="margin-left:auto;background:var(--sf);border:1px solid var(--bd);color:var(--mut);padding:3px 9px;border-radius:20px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer">🔄</button>
+  <div style="margin-left:auto;display:flex;gap:6px">
+    <button onclick="loadAll()" style="background:var(--sf);border:1px solid var(--bd);color:var(--mut);padding:3px 9px;border-radius:20px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer">🔄</button>
+    <button onclick="goTabByName('ayarlar')" style="background:var(--sf);border:1px solid var(--bd);color:var(--mut);padding:3px 9px;border-radius:20px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer">⚙️</button>
+  </div>
 </div>
 
 <div class="tabs">
   <button class="tab active" onclick="goTab('masraflar',this)">💸 Masraflar</button>
   <button class="tab" onclick="goTab('ozet',this)">📊 Özet</button>
-  <button class="tab" onclick="goTab('butce',this)">🎯 Bütçe</button>
   <button class="tab" onclick="goTab('guzergah',this)">🗺️ Güzergah</button>
+  <button class="tab" onclick="goTab('notlar',this)">💬 Notlar</button>
   <button class="tab" onclick="goTab('notlar',this)">💬 Notlar</button>
   <button class="tab" onclick="goTab('mekanlar',this)">⭐ Mekanlar</button>
   <button class="tab" onclick="goTab('galeri',this)">📷 Galeri</button>
@@ -1691,7 +1694,7 @@ function renderYerler() {
               <div style="font-size:11px;color:var(--mut);margin-top:2px">${y.aciklama}${y.saat?' · '+y.saat:''}</div>
               <div style="font-size:12px;color:#b5a000;margin-top:3px">${'⭐'.repeat(Math.round(y.puan))} ${y.puan}</div>
             </div>
-            <button onclick="addYerToRoute('${y.isim.replace(/'/g,"\'")}','${il}')" 
+            <button onclick="addYerToRoute(this)" data-isim="${y.isim}" data-il="${il}"
               style="background:#2d7a4f18;border:1px solid #2d7a4f40;color:#2d7a4f;padding:5px 8px;border-radius:8px;font-family:'Syne',sans-serif;font-size:10px;font-weight:700;cursor:pointer;flex-shrink:0;white-space:nowrap">
               📍 Ekle
             </button>
@@ -1705,9 +1708,11 @@ function setYerFilter(key, val) {
   renderYerler();
 }
 
-async function addYerToRoute(isim, il) {
+async function addYerToRoute(btn) {
+  const isim = btn.dataset.isim;
+  const il = btn.dataset.il;
   try {
-    const rows = await sbPost('guzergahlar',{trip_id:mySession.tripId, isim:`${isim} (${il})`, lat:null, lng:null, sira:places.length});
+    const rows = await sbPost('guzergahlar',{trip_id:mySession.tripId, isim:isim+' ('+il+')', lat:null, lng:null, sira:places.length});
     places.push(rows[0]);
     showToast('📍 Güzergaha eklendi!');
   } catch(e) { showToast('❌ '+e.message); }
