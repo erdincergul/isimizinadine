@@ -216,6 +216,7 @@ input::placeholder,textarea::placeholder{color:var(--mut)}
   <button class="tab" onclick="goTab('guzergah',this)">🗺️ Güzergah</button>
   <button class="tab" onclick="goTab('notlar',this)">💬 Notlar</button>
   <button class="tab" onclick="goTab('mekanlar',this)">⭐ Mekanlar</button>
+  <button class="tab" onclick="goTab('galeri',this)">📷 Galeri</button>
   <button class="tab" onclick="goTab('ayarlar',this)">⚙️ Ayarlar</button>
 </div>
 
@@ -332,6 +333,24 @@ input::placeholder,textarea::placeholder{color:var(--mut)}
     </div>
     <div class="slabel">Ziyaret Edilen Mekanlar <span class="stag" id="mekanCnt">0</span></div>
     <div id="mekanList"></div>
+  </div>
+
+  <!-- GALERİ -->
+  <div id="p-galeri" class="panel">
+    <div class="card">
+      <div class="ctitle">📷 Galeri</div>
+      <p style="font-size:12px;color:var(--mut);margin-bottom:12px">Seyahat anılarınızı paylaşın. Sadece fotoğraf yüklenebilir.</p>
+      <div id="galeriPreviewArea"></div>
+      <label for="galeriInput" class="photo-upload-area" id="galeriUploadArea">
+        <input type="file" id="galeriInput" accept="image/*" onchange="onGaleriSelect(event)">
+        <div style="font-size:28px;margin-bottom:6px">📷</div>
+        <div style="font-size:13px;color:var(--mut);font-weight:600">Fotoğraf seç</div>
+      </label>
+      <input type="text" id="galeriAciklama" placeholder="Açıklama ekle (isteğe bağlı)" style="margin-top:8px;margin-bottom:8px">
+      <button class="btn-primary" id="galeriBtn" onclick="uploadGaleri()">Yükle</button>
+    </div>
+    <div class="slabel">Seyahat Fotoğrafları <span class="stag" id="galeriCnt">0</span></div>
+    <div id="galeriGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"></div>
   </div>
 
   <!-- AYARLAR -->
@@ -1245,6 +1264,119 @@ function toggleSahsi(){
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━
+// GALERİ
+// ━━━━━━━━━━━━━━━━━━━━━━━━
+let fotograflar = [];
+let pendingGaleriPhoto = null;
+
+function onGaleriSelect(e) {
+  const file = e.target.files && e.target.files[0];
+  if(!file) return;
+  if(!file.type.startsWith('image/')) { showToast('⚠️ Sadece fotoğraf yüklenebilir!'); return; }
+  pendingGaleriPhoto = file;
+  const url = URL.createObjectURL(file);
+  document.getElementById('galeriPreviewArea').innerHTML = `
+    <div style="position:relative;margin-bottom:8px">
+      <img src="${url}" style="width:100%;border-radius:10px;max-height:200px;object-fit:cover" onload="URL.revokeObjectURL(this.src)">
+      <button onclick="clearGaleri()" style="position:absolute;top:6px;right:6px;background:#00000088;border:none;color:#fff;border-radius:50%;width:28px;height:28px;font-size:14px;cursor:pointer">✕</button>
+    </div>`;
+  document.getElementById('galeriUploadArea').style.display = 'none';
+}
+
+function clearGaleri() {
+  pendingGaleriPhoto = null;
+  document.getElementById('galeriPreviewArea').innerHTML = '';
+  document.getElementById('galeriInput').value = '';
+  document.getElementById('galeriUploadArea').style.display = '';
+}
+
+async function uploadGaleri() {
+  if(!pendingGaleriPhoto) { showToast('⚠️ Fotoğraf seçin!'); return; }
+  const aciklama = document.getElementById('galeriAciklama').value.trim();
+  const btn = document.getElementById('galeriBtn');
+  btn.disabled = true; btn.textContent = '⏳ Yükleniyor...';
+  try {
+    const file = pendingGaleriPhoto;
+    const ext = (file.name||'foto.jpg').split('.').pop().toLowerCase();
+    const safeExt = ['jpg','jpeg','png','gif','webp'].includes(ext)?ext:'jpg';
+    const dosyaYolu = `galeri_${mySession.tripId}_${Date.now()}.${safeExt}`;
+    const mime = file.type&&file.type.startsWith('image/')?file.type:'image/jpeg';
+    const ab = await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=()=>rej(new Error('Okunamadı'));r.readAsArrayBuffer(file);});
+    const r = await fetch(`${SB_URL}/storage/v1/object/${BUCKET}/${dosyaYolu}`,{
+      method:'POST',
+      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':mime,'x-upsert':'true'},
+      body:ab
+    });
+    if(!r.ok){const t=await r.text();throw new Error('Upload '+r.status+': '+t);}
+    const rows = await sbPost('fotograflar',{
+      trip_id: mySession.tripId,
+      katilimci_id: mySession.katilimciId,
+      dosya_yolu: dosyaYolu,
+      aciklama
+    });
+    fotograflar.unshift(rows[0]);
+    clearGaleri();
+    document.getElementById('galeriAciklama').value = '';
+    renderGaleri();
+    showToast('✅ Fotoğraf yüklendi!');
+  } catch(e) { showToast('❌ '+e.message); }
+  btn.disabled = false; btn.textContent = 'Yükle';
+}
+
+async function renderGaleri() {
+  try {
+    fotograflar = await sbGet('fotograflar', `trip_id=eq.${mySession.tripId}&order=created_at.desc`);
+  } catch(e) { fotograflar = []; }
+  document.getElementById('galeriCnt').textContent = fotograflar.length;
+  const grid = document.getElementById('galeriGrid');
+  if(!fotograflar.length) {
+    grid.innerHTML = '<div class="empty" style="grid-column:1/-1"><div class="ico">📷</div><p>Henüz fotoğraf yok.<br>İlk fotoğrafı sen ekle!</p></div>';
+    return;
+  }
+  grid.innerHTML = fotograflar.map(f => {
+    const url = `${SB_URL}/storage/v1/object/public/${BUCKET}/${f.dosya_yolu}`;
+    const k = katilimcilar.find(k=>k.id===f.katilimci_id);
+    const isOwner = f.katilimci_id === mySession?.katilimciId;
+    return `<div style="position:relative;border-radius:12px;overflow:hidden;background:var(--sf2);aspect-ratio:1">
+      <img src="${url}" style="width:100%;height:100%;object-fit:cover;cursor:pointer" onclick="openFotoModal('${url}','${f.aciklama||''}','${k?.isim||'?'}')" loading="lazy">
+      ${f.aciklama?`<div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,#0008);color:#fff;font-size:10px;padding:6px 8px;line-height:1.3">${f.aciklama}</div>`:''}
+      ${isOwner?`<button onclick="delFoto(${f.id},'${f.dosya_yolu}')" style="position:absolute;top:5px;right:5px;background:#00000088;border:none;color:#fff;border-radius:50%;width:24px;height:24px;font-size:12px;cursor:pointer">✕</button>`:''}
+    </div>`;
+  }).join('');
+}
+
+function openFotoModal(url, aciklama, isim) {
+  document.getElementById('modal').style.display='block';
+  document.getElementById('modal').innerHTML=`<div class="modal-overlay" onclick="closeModal()">
+    <div class="modal" onclick="event.stopPropagation()" style="padding:16px">
+      <div class="modal-hdr">
+        <div class="modal-title">📷 ${isim}</div>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <img src="${url}" style="width:100%;border-radius:12px;max-height:70vh;object-fit:contain;background:var(--sf2)">
+      ${aciklama?`<div style="margin-top:10px;font-size:13px;color:var(--mut);text-align:center">${aciklama}</div>`:''}
+      <a href="${url}" download target="_blank" style="display:block;text-align:center;margin-top:12px;padding:10px;background:var(--sf2);border-radius:10px;font-size:13px;font-weight:700;color:var(--txt);text-decoration:none">⬇️ İndir</a>
+    </div>
+  </div>`;
+}
+
+async function delFoto(id, dosyaYolu) {
+  if(!confirm('Bu fotoğrafı silmek istediğinize emin misiniz?')) return;
+  try {
+    // Storage'dan sil
+    await fetch(`${SB_URL}/storage/v1/object/${BUCKET}/${dosyaYolu}`,{
+      method:'DELETE',
+      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
+    });
+    // DB'den sil
+    await sbDelete('fotograflar',`id=eq.${id}`);
+    fotograflar = fotograflar.filter(f=>f.id!==id);
+    renderGaleri();
+    showToast('🗑️ Fotoğraf silindi');
+  } catch(e) { showToast('❌ '+e.message); }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━
 // MEKANLAR
 // ━━━━━━━━━━━━━━━━━━━━━━━━
 let mekanlar = [];
@@ -1511,6 +1643,7 @@ function goTab(name,btn){
   if(name==='notlar') renderNotes();
   if(name==='ayarlar') renderSettings();
   if(name==='mekanlar') renderMekanlar();
+  if(name==='galeri') renderGaleri();
 }
 function closeModal(){document.getElementById('modal').style.display='none';document.getElementById('modal').innerHTML='';}
 function sync(s,t){document.getElementById('sdot').className='sdot '+s;document.getElementById('stxt').textContent=t;}
