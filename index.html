@@ -46,8 +46,9 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--txt);min-hei
 .sdot.ok{background:var(--grn)}.sdot.loading{background:var(--acc);animation:pulse .8s infinite}.sdot.err{background:var(--red)}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 
-.tabs{display:grid;grid-template-columns:repeat(4,1fr);background:var(--sf);border-bottom:1px solid var(--bd)}
-.tab{padding:9px 4px;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--mut);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:all .2s;text-align:center}
+.tabs{display:flex;flex-wrap:wrap;background:var(--sf);border-bottom:1px solid var(--bd)}
+.tab{flex:0 0 25%;padding:9px 2px;font-family:'Syne',sans-serif;font-size:10px;font-weight:700;color:var(--mut);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:all .2s;text-align:center;box-sizing:border-box}
+.tab.w5{flex:0 0 20%}
 .tab.active{color:var(--acc);border-bottom-color:var(--acc);background:#b07d2a08}
 
 .main{padding:14px 14px 110px}
@@ -125,6 +126,10 @@ input::placeholder,textarea::placeholder{color:var(--mut)}
 .danger-zone{background:#b8402a08;border:1px solid #b8402a28;border-radius:12px;padding:12px 14px;margin-top:8px}
 .danger-zone p{font-size:12px;color:var(--mut);margin-bottom:8px}
 .mono{font-family:'DM Mono',monospace;font-size:13px;letter-spacing:.5px}
+.kf-btn{padding:6px 12px;border-radius:20px;border:1px solid var(--bd);background:var(--sf2);color:var(--mut);font-family:'Syne',sans-serif;font-size:11px;font-weight:700;cursor:pointer;transition:all .2s}
+.kf-btn.active{background:var(--acc);color:#fffdf6;border-color:var(--acc)}
+.kf-yer{background:var(--sf);border:1px solid var(--bd);border-radius:12px;padding:13px 14px;margin-bottom:8px;cursor:pointer;transition:all .15s}
+.kf-yer:active{background:var(--sf2)}
 .code-box{background:var(--sf2);border:2px dashed var(--bd);border-radius:12px;padding:16px;text-align:center;margin-bottom:10px}
 .code-val{font-family:'DM Mono',monospace;font-size:32px;font-weight:700;color:var(--acc);letter-spacing:6px}
 .code-hint{font-size:11px;color:var(--mut);margin-top:6px}
@@ -217,6 +222,7 @@ input::placeholder,textarea::placeholder{color:var(--mut)}
   <button class="tab" onclick="goTab('notlar',this)">💬 Notlar</button>
   <button class="tab" onclick="goTab('mekanlar',this)">⭐ Mekanlar</button>
   <button class="tab" onclick="goTab('galeri',this)">📷 Galeri</button>
+  <button class="tab" onclick="goTab('kesfet',this)">🔍 Keşfet</button>
   <button class="tab" onclick="goTab('ayarlar',this)">⚙️ Ayarlar</button>
 </div>
 
@@ -363,6 +369,29 @@ input::placeholder,textarea::placeholder{color:var(--mut)}
     </div>
     <div class="slabel">Seyahat Fotoğrafları <span class="stag" id="galeriCnt">0</span></div>
     <div id="galeriGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"></div>
+  </div>
+
+  <!-- KEŞFET -->
+  <div id="p-kesfet" class="panel">
+    <div class="card" style="padding:12px 16px">
+      <div class="ctitle">🔍 Güzergahta Ne Var?</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap" id="kesfetFilter">
+        <button onclick="kesfetFiltre('hepsi')" id="kf_hepsi" class="kf-btn active">🗺️ Hepsi</button>
+        <button onclick="kesfetFiltre('yemek')" id="kf_yemek" class="kf-btn">🍽️ Yemek</button>
+        <button onclick="kesfetFiltre('gezi')" id="kf_gezi" class="kf-btn">🏛️ Gezi</button>
+      </div>
+    </div>
+    <div id="kesfetList"></div>
+  </div>
+
+  <!-- YERLER -->
+  <div id="p-yerler" class="panel">
+    <div class="card">
+      <div class="ctitle">📍 Gezilecek & Yenilecek Yerler</div>
+      <p style="font-size:12px;color:var(--mut);margin-bottom:12px">Seyahat güzergahınızdaki önerilen mekanlar. Beğendiklerinizi güzergaha ekleyebilirsiniz.</p>
+      <div style="display:flex;gap:8px;margin-bottom:4px;flex-wrap:wrap" id="yerFilterRow"></div>
+    </div>
+    <div id="yerlerList"></div>
   </div>
 
   <!-- AYARLAR -->
@@ -1493,8 +1522,13 @@ function renderButceDurum() {
     </div>`;
   }
 
-  // Kategori bazlı
-  html += BUTCE_KATEGORILER.map(k => {
+  // Kategori bazlı - harcamaya göre büyükten küçüğe sırala
+  const sirali = [...BUTCE_KATEGORILER].sort((a,b) => {
+    const hA = ortakMasraf.filter(e=>a.cats.length?a.cats.some(c=>e.cat.includes(c.split(' ')[1]||c)):!BUTCE_KATEGORILER.slice(0,-1).some(ok=>ok.cats.some(c=>e.cat.includes(c.split(' ')[1]||c)))).reduce((s,e)=>s+e.amount,0);
+    const hB = ortakMasraf.filter(e=>b.cats.length?b.cats.some(c=>e.cat.includes(c.split(' ')[1]||c)):!BUTCE_KATEGORILER.slice(0,-1).some(ok=>ok.cats.some(c=>e.cat.includes(c.split(' ')[1]||c)))).reduce((s,e)=>s+e.amount,0);
+    return hB - hA;
+  });
+  html += sirali.map(k => {
     const limit = butce[k.key] || 0;
     // O kategoriye ait masraflar
     const harcama = ortakMasraf
@@ -1542,6 +1576,140 @@ async function saveButce() {
     butce = data;
     renderButceDurum();
     showToast('✅ Bütçe kaydedildi!');
+  } catch(e) { showToast('❌ '+e.message); }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━
+// YERLER VERİSİ
+// ━━━━━━━━━━━━━━━━━━━━━━━━
+const YERLER_DATA = [
+  {il:"Kastamonu",renk:"#8B4513",emoji:"🟤",tip:"yemek",isim:"Hanımeli Restoran",puan:4.9,aciklama:"Ev yemekleri, etli ekmek",saat:"06:30-19:30"},
+  {il:"Kastamonu",renk:"#8B4513",emoji:"🟤",tip:"yemek",isim:"Cem Sultan Bedesteni",puan:4.2,aciklama:"Osmanlı atmosferi, ekşili pilav, siyez"},
+  {il:"Kastamonu",renk:"#8B4513",emoji:"🟤",tip:"yemek",isim:"Penbe Han",puan:4.0,aciklama:"Tarihi konak, mantı, şömine"},
+  {il:"Kastamonu",renk:"#8B4513",emoji:"🟤",tip:"yemek",isim:"Kastamonu Ala Pastırma",puan:4.2,aciklama:"6 çeşit çorba, kebap"},
+  {il:"Kastamonu",renk:"#8B4513",emoji:"🟤",tip:"yemek",isim:"Özdemir Lokantası",puan:4.9,aciklama:"Kapama & fırın sütlaç efsanesi"},
+  {il:"Kastamonu",renk:"#8B4513",emoji:"🟤",tip:"yemek",isim:"Ehlitat Lokantası",puan:4.6,aciklama:"İnebolu güveci, sabah erken git"},
+  {il:"Kastamonu",renk:"#8B4513",emoji:"🟤",tip:"yemek",isim:"Heyamola Restaurant",puan:4.1,aciklama:"Deniz kenarı, balık, rakı"},
+  {il:"Kastamonu",renk:"#8B4513",emoji:"🟤",tip:"gezi",isim:"Kastamonu Kalesi",puan:4.6,aciklama:"Şehir panoraması, ücretsiz"},
+  {il:"Kastamonu",renk:"#8B4513",emoji:"🟤",tip:"gezi",isim:"Horma Kanyonu",puan:4.9,aciklama:"Küre Dağlarında ahşap yürüyüş yolu"},
+  {il:"Kastamonu",renk:"#8B4513",emoji:"🟤",tip:"gezi",isim:"Pompeiopolis Antik Kenti",puan:4.4,aciklama:"Taşköprüde Roma dönemi kazı"},
+  {il:"Sinop",renk:"#1a6ab5",emoji:"🔵",tip:"yemek",isim:"Esranın Mutfağı",puan:4.9,aciklama:"Sinop mantısı, kadın işletmesi"},
+  {il:"Sinop",renk:"#1a6ab5",emoji:"🔵",tip:"yemek",isim:"Çınarlı Bahçe",puan:4.8,aciklama:"İnceburun yolunda, bungalov, ev yemekleri"},
+  {il:"Sinop",renk:"#1a6ab5",emoji:"🔵",tip:"yemek",isim:"Irmak Restaurant",puan:4.5,aciklama:"Sahil kenarı, taze balık ve meze"},
+  {il:"Sinop",renk:"#1a6ab5",emoji:"🔵",tip:"yemek",isim:"Çorbacım Boyabat",puan:5.0,aciklama:"Boyabatta efsane çorba ve köfte, 24 saat"},
+  {il:"Sinop",renk:"#1a6ab5",emoji:"🔵",tip:"yemek",isim:"Masıracının Yeri",puan:5.0,aciklama:"Boyabatın tek kuyu kebabı adresi"},
+  {il:"Sinop",renk:"#1a6ab5",emoji:"🔵",tip:"gezi",isim:"Hamsilos Koyu",puan:4.7,aciklama:"Deniz ve ormanda doğal koy"},
+  {il:"Sinop",renk:"#1a6ab5",emoji:"🔵",tip:"gezi",isim:"İnceburun",puan:4.6,aciklama:"Türkiyenin en kuzey noktası, deniz feneri"},
+  {il:"Sinop",renk:"#1a6ab5",emoji:"🔵",tip:"gezi",isim:"Sinop Tarihi Cezaevi",puan:4.1,aciklama:"Ünlü yazarların koğuşları, müze"},
+  {il:"Sinop",renk:"#1a6ab5",emoji:"🔵",tip:"gezi",isim:"Sinop Burnu",puan:4.6,aciklama:"Yürüyüş, gün batımı, manzara"},
+  {il:"Samsun",renk:"#1e8c3a",emoji:"🟢",tip:"yemek",isim:"Meshk Patisserie",puan:4.7,aciklama:"Atakum sahilinde pastane ve kahvaltı"},
+  {il:"Samsun",renk:"#1e8c3a",emoji:"🟢",tip:"yemek",isim:"Fora Restaurant",puan:4.5,aciklama:"Liman manzaralı, uluslararası mutfak"},
+  {il:"Samsun",renk:"#1e8c3a",emoji:"🟢",tip:"yemek",isim:"Burak Usta Pide",puan:4.9,aciklama:"Bafrada Bafra pidesi ustası"},
+  {il:"Samsun",renk:"#1e8c3a",emoji:"🟢",tip:"yemek",isim:"Güneşli Bahçe Tesisleri",puan:4.7,aciklama:"Bafra Barajında göl manzaralı"},
+  {il:"Samsun",renk:"#1e8c3a",emoji:"🟢",tip:"gezi",isim:"Amisos Tepesi",puan:4.3,aciklama:"Teleferik, panoramik manzara"},
+  {il:"Samsun",renk:"#1e8c3a",emoji:"🟢",tip:"gezi",isim:"Samsun Kent Müzesi",puan:4.5,aciklama:"Samsun tarihi"},
+  {il:"Samsun",renk:"#1e8c3a",emoji:"🟢",tip:"gezi",isim:"Kızılırmak Deltası Kuş Cenneti",puan:4.3,aciklama:"Bafrada binlerce kuş türü"},
+  {il:"Samsun",renk:"#1e8c3a",emoji:"🟢",tip:"gezi",isim:"Batık Minare",puan:4.3,aciklama:"Bafra Barajında su altındaki minare"},
+  {il:"Ordu",renk:"#e07820",emoji:"🟠",tip:"yemek",isim:"Müstesna Balık",puan:4.9,aciklama:"Karadenizin en iyi deniz mahsulleri"},
+  {il:"Ordu",renk:"#e07820",emoji:"🟠",tip:"yemek",isim:"Mersinli Ciğerci Cebo",puan:4.8,aciklama:"Efsane ciğer, bol meze"},
+  {il:"Ordu",renk:"#e07820",emoji:"🟠",tip:"yemek",isim:"Ünye Sosyal Tesis",puan:4.3,aciklama:"Ünyede deniz kenarı, Gürcü kavurması"},
+  {il:"Ordu",renk:"#e07820",emoji:"🟠",tip:"yemek",isim:"Ünye Motto Restoran",puan:4.4,aciklama:"Sahil, nargile, keyifli atmosfer"},
+  {il:"Ordu",renk:"#e07820",emoji:"🟠",tip:"gezi",isim:"Boztepe Teleferik",puan:4.7,aciklama:"Şehir ve deniz manzarası, paraşüt"},
+  {il:"Ordu",renk:"#e07820",emoji:"🟠",tip:"gezi",isim:"Çambaşı Yaylası",puan:4.4,aciklama:"Karadenizin meşhur yaylası"},
+  {il:"Ordu",renk:"#e07820",emoji:"🟠",tip:"gezi",isim:"Yason Burnu Feneri",puan:4.6,aciklama:"Perşembe ilçesinde foto noktası"},
+  {il:"Ordu",renk:"#e07820",emoji:"🟠",tip:"gezi",isim:"Paşaoğlu Konağı Müzesi",puan:4.4,aciklama:"1896 Osmanlı konağı, ücretsiz"},
+  {il:"Giresun",renk:"#b5a000",emoji:"🟡",tip:"yemek",isim:"Serender Restaurant",puan:4.5,aciklama:"Merkez, kaliteli et"},
+  {il:"Giresun",renk:"#b5a000",emoji:"🟡",tip:"yemek",isim:"Yeşil Bahçe Restaurant",puan:4.6,aciklama:"Espiyede sahil yolunda Espiye pidesi"},
+  {il:"Giresun",renk:"#b5a000",emoji:"🟡",tip:"yemek",isim:"Sahil Pide Salonu",puan:4.3,aciklama:"Görelede tereyağlı meşhur pide"},
+  {il:"Giresun",renk:"#b5a000",emoji:"🟡",tip:"gezi",isim:"Giresun Kalesi",puan:4.5,aciklama:"Panoramik Karadeniz manzarası"},
+  {il:"Giresun",renk:"#b5a000",emoji:"🟡",tip:"gezi",isim:"Giresun Müzesi",puan:4.5,aciklama:"Eski kilise binasında, Bizans eserleri"},
+  {il:"Giresun",renk:"#b5a000",emoji:"🟡",tip:"gezi",isim:"Paşakonağı Yaylası",puan:4.5,aciklama:"Bulancakta sonbaharda nefes kesen yayla"},
+  {il:"Trabzon",renk:"#c0192c",emoji:"🔴",tip:"yemek",isim:"Berweuli Cafe",puan:4.7,aciklama:"Tarihi merkezde yöresel Trabzon mutfağı"},
+  {il:"Trabzon",renk:"#c0192c",emoji:"🔴",tip:"yemek",isim:"Mützeyyen Restaurant",puan:4.7,aciklama:"Meyhane, meze, canlı müzik"},
+  {il:"Trabzon",renk:"#c0192c",emoji:"🔴",tip:"yemek",isim:"Ganita Restaurant",puan:4.6,aciklama:"Sahilde deniz mahsulleri"},
+  {il:"Trabzon",renk:"#c0192c",emoji:"🔴",tip:"yemek",isim:"Kamiloğlu Köfte",puan:4.8,aciklama:"Akçaabatta sahil kenarı köfte"},
+  {il:"Trabzon",renk:"#c0192c",emoji:"🔴",tip:"yemek",isim:"Dyla Cafe",puan:4.9,aciklama:"Yomrada samimi aile işletmesi"},
+  {il:"Trabzon",renk:"#c0192c",emoji:"🔴",tip:"gezi",isim:"Sümela Manastırı",puan:4.2,aciklama:"Maçkada kaya içi Rum manastırı"},
+  {il:"Trabzon",renk:"#c0192c",emoji:"🔴",tip:"gezi",isim:"Uzungöl",puan:4.4,aciklama:"Çaykarada ünlü dağ gölü"},
+  {il:"Trabzon",renk:"#c0192c",emoji:"🔴",tip:"gezi",isim:"Trabzon Müzesi",puan:4.3,aciklama:"Restore tarihi konak"},
+  {il:"Rize",renk:"#7b2d8b",emoji:"🟣",tip:"yemek",isim:"Fasuli Rize",puan:4.6,aciklama:"Rize fasulyesi ve yöresel lezzetler"},
+  {il:"Rize",renk:"#7b2d8b",emoji:"🟣",tip:"yemek",isim:"Nalia Karadeniz Mutfağı",puan:4.1,aciklama:"Deniz manzaralı, Karadeniz kahvaltısı"},
+  {il:"Rize",renk:"#7b2d8b",emoji:"🟣",tip:"yemek",isim:"Ayder Ballı Şelale Restoran",puan:4.6,aciklama:"At çiftliği, şelale yanı, balık"},
+  {il:"Rize",renk:"#7b2d8b",emoji:"🟣",tip:"yemek",isim:"Ayder Alabalık Çiftliği",puan:4.0,aciklama:"Doğal ortamda taze alabalık"},
+  {il:"Rize",renk:"#7b2d8b",emoji:"🟣",tip:"gezi",isim:"Rize Kalesi",puan:4.4,aciklama:"Tepede çay keyfi, şehir panoraması"},
+  {il:"Rize",renk:"#7b2d8b",emoji:"🟣",tip:"gezi",isim:"Ayder Yaylası",puan:4.3,aciklama:"Çamlıhemşinde yaylaların kraliçesi"},
+  {il:"Rize",renk:"#7b2d8b",emoji:"🟣",tip:"gezi",isim:"Hemşin Vadisi",puan:4.7,aciklama:"Zipline, Zilkale, nehir yürüyüşü"},
+  {il:"Rize",renk:"#7b2d8b",emoji:"🟣",tip:"gezi",isim:"TR Cloud Şelalesi",puan:4.6,aciklama:"Orman yürüyüşü, şelale, doğal havuz"},
+  {il:"Rize",renk:"#7b2d8b",emoji:"🟣",tip:"gezi",isim:"Şimşir Ormanı",puan:4.7,aciklama:"Antik çınar-şimşir ormanı"}
+]
+
+const ILLER = [...new Set(YERLER_DATA.map(y=>y.il))];
+let yerFilter = {il:'Tümü', tip:'hepsi'};
+
+function renderYerler() {
+  // Filter butonları
+  const filterRow = document.getElementById('yerFilterRow');
+  filterRow.innerHTML = `
+    <div style="width:100%;display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+      ${['Tümü',...ILLER].map(il=>`
+        <button onclick="setYerFilter('il','${il}')" style="padding:5px 10px;border-radius:20px;border:1px solid ${yerFilter.il===il?'var(--acc)':'var(--bd)'};background:${yerFilter.il===il?'#b07d2a18':'var(--sf2)'};color:${yerFilter.il===il?'var(--acc)':'var(--mut)'};font-family:'Syne',sans-serif;font-size:11px;font-weight:700;cursor:pointer">
+          ${il==='Tümü'?'🗺️ ':YERLER_DATA.find(y=>y.il===il)?.emoji+' '}${il}
+        </button>`).join('')}
+    </div>
+    <div style="display:flex;gap:6px">
+      ${[{k:'hepsi',l:'🔍 Hepsi'},{k:'yemek',l:'🍽️ Yemek'},{k:'gezi',l:'🏛️ Gezi'}].map(t=>`
+        <button onclick="setYerFilter('tip','${t.k}')" style="padding:5px 12px;border-radius:20px;border:1px solid ${yerFilter.tip===t.k?'var(--acc)':'var(--bd)'};background:${yerFilter.tip===t.k?'#b07d2a18':'var(--sf2)'};color:${yerFilter.tip===t.k?'var(--acc)':'var(--mut)'};font-family:'Syne',sans-serif;font-size:11px;font-weight:700;cursor:pointer">${t.l}</button>`).join('')}
+    </div>`;
+
+  // Filtreleme
+  let filtered = YERLER_DATA;
+  if(yerFilter.il !== 'Tümü') filtered = filtered.filter(y=>y.il===yerFilter.il);
+  if(yerFilter.tip !== 'hepsi') filtered = filtered.filter(y=>y.tip===yerFilter.tip);
+  // Puana göre sırala
+  filtered = filtered.sort((a,b)=>b.puan-a.puan);
+
+  const list = document.getElementById('yerlerList');
+  if(!filtered.length) { list.innerHTML='<div class="empty"><div class="ico">📍</div><p>Sonuç bulunamadı.</p></div>'; return; }
+
+  // İllere grupla
+  const grouped = {};
+  filtered.forEach(y=>{ if(!grouped[y.il]) grouped[y.il]=[]; grouped[y.il].push(y); });
+
+  list.innerHTML = Object.entries(grouped).map(([il, yerler])=>`
+    <div style="margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:0 2px">
+        <span style="font-size:16px">${yerler[0].emoji}</span>
+        <span style="font-size:14px;font-weight:800;color:var(--txt)">${il}</span>
+        <div style="flex:1;height:1px;background:var(--bd)"></div>
+      </div>
+      ${yerler.map(y=>`
+        <div style="background:var(--sf);border:1px solid var(--bd);border-left:3px solid ${y.renk};border-radius:12px;padding:12px 14px;margin-bottom:8px">
+          <div style="display:flex;align-items:flex-start;gap:10px">
+            <div style="font-size:18px;flex-shrink:0">${y.tip==='yemek'?'🍽️':'🏛️'}</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13px;font-weight:700">${y.isim}</div>
+              <div style="font-size:11px;color:var(--mut);margin-top:2px">${y.aciklama}${y.saat?' · '+y.saat:''}</div>
+              <div style="font-size:12px;color:#b5a000;margin-top:3px">${'⭐'.repeat(Math.round(y.puan))} ${y.puan}</div>
+            </div>
+            <button onclick="addYerToRoute('${y.isim.replace(/'/g,"\'")}','${il}')" 
+              style="background:#2d7a4f18;border:1px solid #2d7a4f40;color:#2d7a4f;padding:5px 8px;border-radius:8px;font-family:'Syne',sans-serif;font-size:10px;font-weight:700;cursor:pointer;flex-shrink:0;white-space:nowrap">
+              📍 Ekle
+            </button>
+          </div>
+        </div>`).join('')}
+    </div>`).join('');
+}
+
+function setYerFilter(key, val) {
+  yerFilter[key] = val;
+  renderYerler();
+}
+
+async function addYerToRoute(isim, il) {
+  try {
+    const rows = await sbPost('guzergahlar',{trip_id:mySession.tripId, isim:`${isim} (${il})`, lat:null, lng:null, sira:places.length});
+    places.push(rows[0]);
+    showToast('📍 Güzergaha eklendi!');
   } catch(e) { showToast('❌ '+e.message); }
 }
 
@@ -1800,6 +1968,64 @@ function getDistKm(lat1, lng1, lat2, lng2) {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━
+// KEŞFET
+// ━━━━━━━━━━━━━━━━━━━━━━━━
+let kesfetAktifFiltre = 'hepsi';
+
+function kesfetFiltre(tip) {
+  kesfetAktifFiltre = tip;
+  document.querySelectorAll('.kf-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('kf_'+tip)?.classList.add('active');
+  renderKesfet();
+}
+
+function renderKesfet() {
+  const filtered = kesfetAktifFiltre==='hepsi' ? KESFET_DATA : KESFET_DATA.filter(d=>d.tip===kesfetAktifFiltre);
+  // İllere göre grupla
+  const iller = [...new Set(filtered.map(d=>d.il))];
+  let html = '';
+  iller.forEach(il => {
+    const yerler = filtered.filter(d=>d.il===il);
+    const renk = yerler[0].renk;
+    html += `<div style="margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:0 4px">
+        <div style="width:14px;height:14px;border-radius:50%;background:${renk};flex-shrink:0"></div>
+        <div style="font-size:13px;font-weight:800;color:${renk}">${il}</div>
+      </div>
+      ${yerler.map(y=>`
+        <div class="kf-yer" onclick="kesfetEkle('${y.isim.replace(/'/g,"\'")}','${y.tip}')">
+          <div style="display:flex;align-items:flex-start;gap:10px">
+            <div style="font-size:18px;flex-shrink:0">${y.tip==='yemek'?'🍽️':'🏛️'}</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13px;font-weight:700">${y.isim}</div>
+              <div style="font-size:11px;color:var(--mut);margin-top:2px">${y.detay}</div>
+            </div>
+            <div style="font-size:12px;color:var(--acc);white-space:nowrap;font-weight:700">${y.puan}</div>
+          </div>
+          <div style="margin-top:8px;display:flex;gap:6px">
+            <button onclick="event.stopPropagation();kesfetGoogleMaps('${y.isim.replace(/'/g,"\'")}','${il}')" style="background:var(--sf2);border:1px solid var(--bd);color:var(--txt);padding:5px 10px;border-radius:8px;font-family:'Syne',sans-serif;font-size:11px;font-weight:600;cursor:pointer">🗺️ Harita</button>
+            <button onclick="event.stopPropagation();kesfetGuzergaha('${y.isim.replace(/'/g,"\'")}','')" style="background:#2d7a4f18;border:1px solid #2d7a4f40;color:#2d7a4f;padding:5px 10px;border-radius:8px;font-family:'Syne',sans-serif;font-size:11px;font-weight:600;cursor:pointer">📍 Güzergaha Ekle</button>
+          </div>
+        </div>`).join('')}
+    </div>`;
+  });
+  document.getElementById('kesfetList').innerHTML = html || '<div class="empty"><div class="ico">🔍</div><p>Sonuç bulunamadı.</p></div>';
+}
+
+function kesfetGoogleMaps(isim, il) {
+  const url = 'https://www.google.com/maps/search/'+encodeURIComponent(isim+' '+il);
+  window.open(url, '_blank');
+}
+
+async function kesfetGuzergaha(isim, koordinat) {
+  try {
+    const rows = await sbPost('guzergahlar',{trip_id:mySession.tripId, isim, lat:null, lng:null, sira:places.length});
+    places.push(rows[0]);
+    showToast('📍 "'+isim+'" güzergaha eklendi!');
+  } catch(e) { showToast('❌ '+e.message); }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━
 // UTILS
 // ━━━━━━━━━━━━━━━━━━━━━━━━
 function goTab(name,btn){
@@ -1814,6 +2040,8 @@ function goTab(name,btn){
   if(name==='ayarlar') renderSettings();
   if(name==='mekanlar') renderMekanlar();
   if(name==='galeri') renderGaleri();
+  if(name==='yerler') renderYerler();
+  if(name==='kesfet') renderKesfet();
 }
 function closeModal(){document.getElementById('modal').style.display='none';document.getElementById('modal').innerHTML='';}
 function sync(s,t){document.getElementById('sdot').className='sdot '+s;document.getElementById('stxt').textContent=t;}
