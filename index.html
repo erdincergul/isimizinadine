@@ -9,6 +9,13 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 :root{--bg:#f2ece0;--sf:#fffdf6;--sf2:#ede6d6;--bd:#d8cfba;--acc:#b07d2a;--red:#b8402a;--grn:#2d7a4f;--txt:#26200f;--mut:#8a7a5e;--r:14px}
+
+/* TEMALAR */
+body.tema-gece{--bg:#1a1a2e;--sf:#16213e;--sf2:#0f3460;--bd:#1a4a7a;--acc:#e94560;--txt:#eaeaea;--mut:#8899aa}
+body.tema-orman{--bg:#1a2a1a;--sf:#1e3a1e;--sf2:#243d24;--bd:#2d5a2d;--acc:#4caf50;--txt:#e8f5e8;--mut:#7aaa7a}
+body.tema-okyanus{--bg:#0a1628;--sf:#0d1f3c;--sf2:#112a50;--bd:#1a3a6a;--acc:#00b4d8;--txt:#e0f4ff;--mut:#6aabb8}
+body.tema-lavanta{--bg:#f5f0ff;--sf:#fdfaff;--sf2:#ede5ff;--bd:#d4c0ff;--acc:#7c3aed;--txt:#1e1030;--mut:#7060a0}
+body.tema-gul{--bg:#fff5f5;--sf:#fffafa;--sf2:#ffe8e8;--bd:#ffcdd2;--acc:#e91e63;--txt:#1a0010;--mut:#a06070}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;max-width:480px;margin:0 auto}
 
@@ -388,6 +395,18 @@ input::placeholder,textarea::placeholder{color:var(--mut)}
 
   <!-- AYARLAR -->
   <div id="p-ayarlar" class="panel">
+    <div class="card">
+      <div class="ctitle">🎨 Tema Seçimi</div>
+      <p style="font-size:12px;color:var(--mut);margin-bottom:12px">Sadece kendi ekranınızda değişir.</p>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px" id="temaGrid">
+        <button onclick="setTema('')" class="tema-btn" data-tema="" style="background:linear-gradient(135deg,#f2ece0,#fffdf6);border:2px solid #d8cfba;border-radius:10px;padding:10px 4px;cursor:pointer;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:#26200f">☀️ Klasik</button>
+        <button onclick="setTema('gece')" class="tema-btn" data-tema="gece" style="background:linear-gradient(135deg,#1a1a2e,#16213e);border:2px solid #1a4a7a;border-radius:10px;padding:10px 4px;cursor:pointer;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:#eaeaea">🌙 Gece</button>
+        <button onclick="setTema('orman')" class="tema-btn" data-tema="orman" style="background:linear-gradient(135deg,#1a2a1a,#1e3a1e);border:2px solid #2d5a2d;border-radius:10px;padding:10px 4px;cursor:pointer;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:#e8f5e8">🌲 Orman</button>
+        <button onclick="setTema('okyanus')" class="tema-btn" data-tema="okyanus" style="background:linear-gradient(135deg,#0a1628,#0d1f3c);border:2px solid #1a3a6a;border-radius:10px;padding:10px 4px;cursor:pointer;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:#e0f4ff">🌊 Okyanus</button>
+        <button onclick="setTema('lavanta')" class="tema-btn" data-tema="lavanta" style="background:linear-gradient(135deg,#f5f0ff,#fdfaff);border:2px solid #d4c0ff;border-radius:10px;padding:10px 4px;cursor:pointer;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:#1e1030">💜 Lavanta</button>
+        <button onclick="setTema('gul')" class="tema-btn" data-tema="gul" style="background:linear-gradient(135deg,#fff5f5,#fffafa);border:2px solid #ffcdd2;border-radius:10px;padding:10px 4px;cursor:pointer;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:#1a0010">🌸 Gül</button>
+      </div>
+    </div>
     <div class="card">
       <div class="ctitle">🔑 Seyahat Bilgisi</div>
       <div class="code-box">
@@ -2375,6 +2394,7 @@ let cevapVerildi = false;
 
 function initOyun() {
   oyunDurum = 'setup';
+  oyunKisiler = []; // Seçimler sıfırla
   renderOyun();
 }
 
@@ -2386,12 +2406,8 @@ function renderOyun() {
     el.innerHTML = `
       <div class="card">
         <div class="ctitle">🧠 Bilgi Yarışması</div>
-        <p style="font-size:13px;color:var(--mut);margin-bottom:16px">Oyuncuları ekleyin ve yarışmayı başlatın!</p>
+        <p style="font-size:13px;color:var(--mut);margin-bottom:12px">Oyuna katılacak kişileri seçin. Araç süren kişiyi seçmeyin!</p>
         <div id="oyuncuListesi" style="margin-bottom:12px"></div>
-        <div style="display:flex;gap:8px;margin-bottom:12px">
-          <input type="text" id="oyuncuIsim" placeholder="Oyuncu adı" style="flex:1" onkeydown="if(event.key==='Enter')oyuncuEkle()">
-          <button onclick="oyuncuEkle()" style="background:var(--acc);border:none;color:#fff;padding:11px 16px;border-radius:10px;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer">+</button>
-        </div>
         <div style="margin-bottom:12px">
           <div style="font-size:11px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Soru Sayısı</div>
           <div style="display:flex;gap:8px">
@@ -2465,7 +2481,7 @@ function renderOyun() {
             <div style="font-family:'DM Mono',monospace;font-size:22px;color:var(--acc);font-weight:700">${oyunPuanlar[k]||0}</div>
           </div>`).join('')}
       </div>
-      <button onclick="initOyun()" class="btn-primary" style="margin-top:8px">🔄 Yeni Oyun</button>`;
+      <button onclick="seciliOyuncular=new Set();initOyun()" class="btn-primary" style="margin-top:8px">🔄 Yeni Oyun</button>`;
   }
 }
 
@@ -2481,37 +2497,47 @@ function setSoruSayisi(n) {
   });
 }
 
+let seciliOyuncular = new Set();
+
 function renderOyuncular() {
   const el = document.getElementById('oyuncuListesi');
   if(!el) return;
-  el.innerHTML = oyunKisiler.map((k,i)=>`
-    <div style="display:flex;align-items:center;gap:8px;background:var(--sf2);border-radius:10px;padding:9px 12px;margin-bottom:6px">
-      <div style="width:28px;height:28px;border-radius:50%;background:${['#b07d2a','#b8402a','#2d7a4f','#5b6abf','#8b4ab8','#2a8ab8'][i%6]};color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">${k.charAt(0).toUpperCase()}</div>
-      <div style="flex:1;font-size:13px;font-weight:700">${k}</div>
-      <button onclick="oyuncuCikar(${i})" style="background:none;border:none;color:var(--mut);cursor:pointer;font-size:14px">✕</button>
-    </div>`).join('') || '<div style="font-size:12px;color:var(--mut);text-align:center;padding:8px">Oyuncu eklenmedi.</div>';
+  const tumKatilimcilar = katilimcilar.filter(k=>k.durum==='onaylandi');
+  if(!tumKatilimcilar.length) {
+    el.innerHTML = '<div style="font-size:13px;color:var(--red);text-align:center;padding:12px;background:#b8402a10;border-radius:10px">⚠️ Seyahatte onaylı katılımcı yok.</div>';
+    const btn = document.getElementById('baslatBtn');
+    if(btn) { btn.disabled=true; btn.style.opacity='.4'; }
+    return;
+  }
+  el.innerHTML = tumKatilimcilar.map((k,i)=>{
+    const secili = seciliOyuncular.has(k.isim);
+    const color = ['#b07d2a','#b8402a','#2d7a4f','#5b6abf','#8b4ab8','#2a8ab8'][i%6];
+    return `<div onclick="toggleOyuncu('${k.isim.replace(/'/g,"\'")}','${color}')" 
+      style="display:flex;align-items:center;gap:10px;border-radius:10px;padding:10px 12px;margin-bottom:8px;cursor:pointer;border:2px solid ${secili?color:'var(--bd)'};background:${secili?color+'18':'var(--sf2)'};transition:all .2s">
+      <div style="width:28px;height:28px;border-radius:50%;background:${color};color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">${k.isim.charAt(0).toUpperCase()}</div>
+      <div style="flex:1;font-size:13px;font-weight:700;color:${secili?color:'var(--txt)'}">${k.isim}</div>
+      <div style="width:22px;height:22px;border-radius:50%;border:2px solid ${secili?color:'var(--bd)'};background:${secili?color:'transparent'};display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;flex-shrink:0">${secili?'✓':''}</div>
+    </div>`;
+  }).join('');
 
   const btn = document.getElementById('baslatBtn');
-  if(btn) { btn.disabled = oyunKisiler.length<1; btn.style.opacity = oyunKisiler.length<1?'.4':'1'; }
+  const seciliSayi = seciliOyuncular.size;
+  if(btn) {
+    btn.disabled = seciliSayi < 1;
+    btn.style.opacity = seciliSayi < 1 ? '.4' : '1';
+    btn.textContent = seciliSayi>0 ? `🚀 ${seciliSayi} Kişiyle Başlat` : '🚀 Başlat';
+  }
 }
 
-function oyuncuEkle() {
-  const inp = document.getElementById('oyuncuIsim');
-  const isim = inp.value.trim();
-  if(!isim || oyunKisiler.includes(isim)) return;
-  oyunKisiler.push(isim);
-  inp.value = '';
-  renderOyuncular();
-}
-
-function oyuncuCikar(i) {
-  oyunKisiler.splice(i,1);
+function toggleOyuncu(isim) {
+  if(seciliOyuncular.has(isim)) seciliOyuncular.delete(isim);
+  else seciliOyuncular.add(isim);
   renderOyuncular();
 }
 
 function oyunuBaslat() {
-  if(!oyunKisiler.length) return;
-  // Soruları karıştır ve seç
+  if(!seciliOyuncular.size) return;
+  oyunKisiler = [...seciliOyuncular];
   oyunSorular = [...SORULAR].sort(()=>Math.random()-.5).slice(0, secilenSoruSayisi);
   oyunSoruIdx = 0;
   oyunMevcutKisi = 0;
@@ -2574,6 +2600,27 @@ function sonrakiSoru() {
     oyunDurum = 'bitti';
   }
   renderOyun();
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━
+// TEMA
+// ━━━━━━━━━━━━━━━━━━━━━━━━
+function setTema(tema) {
+  // Eski temaları kaldır
+  document.body.className = document.body.className.replace(/tema-\S+/g,'').trim();
+  if(tema) document.body.classList.add('tema-'+tema);
+  localStorage.setItem('tema', tema);
+  // Aktif butonları güncelle
+  document.querySelectorAll('.tema-btn').forEach(btn=>{
+    const isActive = btn.dataset.tema===tema;
+    btn.style.outline = isActive?'3px solid var(--acc)':'none';
+    btn.style.outlineOffset = '2px';
+  });
+}
+
+function loadTema() {
+  const tema = localStorage.getItem('tema')||'';
+  setTema(tema);
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━
@@ -2727,6 +2774,8 @@ Ayarlar sekmesinden onaylayın.`));
 // BAŞLAT
 // ━━━━━━━━━━━━━━━━━━━━━━━━
 (async()=>{
+  // Temayı yükle
+  loadTema();
   // Daha önce giriş yaptı mı?
   const saved=localStorage.getItem('mySession');
   if(saved){
