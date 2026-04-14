@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-<!DOCTYPE html>
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
@@ -520,9 +519,11 @@ async function joinTrip() {
     mySession = {name, email, sessionId, tripId:trip.id, katilimciId, iban, rol, durum};
     localStorage.setItem('mySession', JSON.stringify(mySession));
     document.getElementById('welcomeScreen').style.display='none';
-    document.getElementById('app').style.display='block';
+    // loadAll durum kontrolü yapacak, ona bırak
     await loadAll();
-    showToast('✅ '+trip.isim+' seyahatine katıldın!');
+    if(durum === 'onaylandi') {
+      showToast('✅ '+trip.isim+' seyahatine katıldın!');
+    }
   } catch(e){err.style.display='block';err.textContent='Hata: '+e.message;}
 }
 
@@ -549,9 +550,14 @@ async function loadAll() {
     masraflar = mList;
     places = pList;
     notes = nList;
-    // Durum kontrolü
-    const myK2 = katilimcilar.find(k=>k.id===mySession.katilimciId);
-    if(!myK2 || myK2.durum === 'engellendi') {
+    // Durum kontrolü — tumKatilimcilar'dan ara
+    const myK2 = tumKatilimcilar.find(k=>k.id===mySession.katilimciId);
+    if(!myK2) {
+      // Kayıt yok — beklemede ekranı göster
+      showWaitingScreen();
+      return;
+    }
+    if(myK2.durum === 'engellendi') {
       localStorage.removeItem('mySession');
       document.getElementById('app').style.display='none';
       showBannedScreen();
@@ -560,11 +566,17 @@ async function loadAll() {
     if(myK2.durum === 'beklemede') {
       mySession.rol = myK2.rol;
       localStorage.setItem('mySession', JSON.stringify(mySession));
+      document.getElementById('app').style.display='none';
       showWaitingScreen();
       return;
     }
+    // Onaylı — devam et
     mySession.rol = myK2.rol;
+    mySession.durum = myK2.durum;
     localStorage.setItem('mySession', JSON.stringify(mySession));
+    // Uygulama görünür olsun
+    document.getElementById('app').style.display='block';
+    document.getElementById('welcomeScreen').style.display='none';
     whoIdx = katilimcilar.findIndex(k=>k.id===mySession.katilimciId);
     if(whoIdx<0) whoIdx=0;
     sync('ok','Bağlandı ✓');
@@ -1158,6 +1170,21 @@ function renderSettings(){
   document.getElementById('katilimciList').innerHTML = listHTML;
 }
 
+async function approveKatilimci(id, isim) {
+  try {
+    await sbPatch('katilimcilar',`id=eq.${id}`,{durum:'onaylandi'});
+    const approved = tumKatilimcilar.find(k=>k.id===id);
+    if(approved) {
+      approved.durum = 'onaylandi';
+      if(!katilimcilar.find(k=>k.id===id)) katilimcilar.push(approved);
+    }
+    tumKatilimcilar = tumKatilimcilar.map(k=>k.id===id?{...k,durum:'onaylandi'}:k);
+    renderAll();
+    showToast('✅ '+isim+' onaylandı!');
+    showPopup('✅ '+isim+' seyahate onaylandı!');
+  } catch(e) { showToast('❌ '+e.message); }
+}
+
 async function removeKatilimci(id, isim) {
   if(!confirm(`"${isim}" kişisini engellemek istediğinize emin misiniz?`)) return;
   try {
@@ -1320,6 +1347,7 @@ async function uploadGaleri() {
     document.getElementById('galeriAciklama').value = '';
     renderGaleri();
     showToast('✅ Fotoğraf yüklendi!');
+    // Diğerlerine bildir (sync ile gelecek, biz sadece kendimizinkini gösterdik)
   } catch(e) { showToast('❌ '+e.message); }
   btn.disabled = false; btn.textContent = 'Yükle';
 }
@@ -1713,14 +1741,31 @@ setInterval(async()=>{
         const yeniNotlar = nList.filter(n => !notes.find(e=>e.id===n.id));
         yeniNotlar.forEach(n => {
           if(n.katilimci_id !== mySession?.katilimciId) {
-            showPopup(`💬 ${n.yazar} not ekledi!\n"${n.mesaj.slice(0,60)}${n.mesaj.length>60?'...':''}"`);
+            showPopup(`💬 ${n.yazar} not ekledi!
+"${n.mesaj.slice(0,60)}${n.mesaj.length>60?'...':''}"`);
           }
         });
       }
-      // Yeni katılımcı
-      if(kList.length > katilimcilar.length) {
-        const yeni = kList.filter(k => !katilimcilar.find(e=>e.id===k.id));
-        yeni.forEach(k => showPopup(`👋 ${k.isim} seyahate katıldı!`));
+      // Yeni fotoğraf kontrolü
+      try {
+        const fList = await sbGet('fotograflar',`trip_id=eq.${mySession.tripId}&order=created_at.desc`);
+        if(fList.length > fotograflar.length) {
+          const yeniFoto = fList.filter(f => !fotograflar.find(e=>e.id===f.id));
+          yeniFoto.forEach(f => {
+            if(f.katilimci_id !== mySession?.katilimciId) {
+              const k = kList.find(k=>k.id===f.katilimci_id);
+              showPopup(`📷 ${k?.isim||'Biri'} fotoğraf ekledi!${f.aciklama?' - '+f.aciklama:''}`);
+            }
+          });
+          fotograflar = fList;
+          if(document.getElementById('p-galeri').classList.contains('active')) renderGaleri();
+        }
+      } catch{}
+      // Yeni katılımcı - sadece admin'e bildir
+      if(kList.filter(k=>k.durum!=='engellendi').length > katilimcilar.length && mySession?.rol==='admin') {
+        const yeni = kList.filter(k=>k.durum==='beklemede'&&!tumKatilimcilar.find(e=>e.id===k.id&&e.durum==='beklemede'));
+        yeni.forEach(k => showPopup(`👤 ${k.isim} katılmak istiyor!
+Ayarlar sekmesinden onaylayın.`));
       }
       masraflar=mList; notes=nList;
       tumKatilimcilar = kList;
