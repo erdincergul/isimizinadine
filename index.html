@@ -214,6 +214,7 @@ input::placeholder,textarea::placeholder{color:var(--mut)}
   <div style="margin-left:auto;display:flex;gap:6px">
     <button onclick="loadAll()" style="background:var(--sf);border:1px solid var(--bd);color:var(--mut);padding:3px 9px;border-radius:20px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer">🔄</button>
     <button onclick="openAcilModal()" style="background:#b8402a;border:none;color:#fff;padding:3px 10px;border-radius:20px;font-family:'Syne',sans-serif;font-size:10px;font-weight:800;cursor:pointer">🚨 ACİL</button>
+    <button onclick="openRezModal()" style="background:#1a6ab5;border:none;color:#fff;padding:3px 10px;border-radius:20px;font-family:'Syne',sans-serif;font-size:10px;font-weight:700;cursor:pointer">🏨 Rezerv</button>
     <button onclick="goTabByName('ayarlar')" style="background:var(--sf);border:1px solid var(--bd);color:var(--mut);padding:3px 9px;border-radius:20px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer">⚙️</button>
   </div>
 </div>
@@ -2068,14 +2069,97 @@ async function kesfetGuzergaha(isim, koordinat) {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━
+// REZERVASYON
+// ━━━━━━━━━━━━━━━━━━━━━━━━
+let rezervasyonlar = [];
+
+async function openRezModal() {
+  try {
+    rezervasyonlar = await sbGet('rezervasyonlar', `trip_id=eq.${mySession.tripId}&order=created_at.asc`);
+  } catch(e){ rezervasyonlar=[]; }
+
+  const modal = document.getElementById('modal');
+  modal.style.display = 'block';
+  modal.innerHTML = `<div class="modal-overlay" onclick="closeModal()">
+    <div class="modal" onclick="event.stopPropagation()" style="padding:20px 16px 36px">
+      <div class="modal-hdr">
+        <div class="modal-title" style="color:#1a6ab5">🏨 Rezervasyonlar</div>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+
+      <div id="rezListModal"></div>
+
+      <div style="background:var(--sf2);border-radius:12px;padding:14px;margin-top:8px">
+        <div style="font-size:11px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">➕ Yeni Rezervasyon</div>
+        <input type="text" id="rezOtel" placeholder="Otel / Konaklama adı" style="margin-bottom:8px;background:var(--sf);border:1px solid var(--bd);border-radius:10px;color:var(--txt);font-family:'Syne',sans-serif;font-size:13px;padding:10px 12px;outline:none;width:100%">
+        <input type="text" id="rezAdres" placeholder="Adres" style="margin-bottom:8px;background:var(--sf);border:1px solid var(--bd);border-radius:10px;color:var(--txt);font-family:'Syne',sans-serif;font-size:13px;padding:10px 12px;outline:none;width:100%">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+          <input type="text" id="rezGiris" placeholder="Giriş (örn: 15 Ağu 14:00)" style="background:var(--sf);border:1px solid var(--bd);border-radius:10px;color:var(--txt);font-family:'Syne',sans-serif;font-size:12px;padding:10px 12px;outline:none;width:100%">
+          <input type="text" id="rezCikis" placeholder="Çıkış (örn: 17 Ağu 12:00)" style="background:var(--sf);border:1px solid var(--bd);border-radius:10px;color:var(--txt);font-family:'Syne',sans-serif;font-size:12px;padding:10px 12px;outline:none;width:100%">
+        </div>
+        <textarea id="rezNotlar" placeholder="Notlar (konfirmasyon no, özel istekler...)" rows="2" style="background:var(--sf);border:1px solid var(--bd);border-radius:10px;color:var(--txt);font-family:'Syne',sans-serif;font-size:13px;padding:10px 12px;outline:none;width:100%;resize:none;margin-bottom:8px"></textarea>
+        <button onclick="addRezervason()" style="width:100%;padding:12px;background:#1a6ab5;color:#fff;border:none;border-radius:10px;font-family:'Syne',sans-serif;font-size:14px;font-weight:800;cursor:pointer">+ Ekle</button>
+      </div>
+    </div>
+  </div>`;
+  renderRezListModal();
+}
+
+function renderRezListModal() {
+  const el = document.getElementById('rezListModal');
+  if(!el) return;
+  if(!rezervasyonlar.length) {
+    el.innerHTML = '<div style="text-align:center;padding:16px;color:var(--mut);font-size:13px">Henüz rezervasyon yok.</div>';
+    return;
+  }
+  el.innerHTML = rezervasyonlar.map(r=>`
+    <div style="background:var(--sf2);border:1px solid var(--bd);border-left:3px solid #1a6ab5;border-radius:12px;padding:13px 14px;margin-bottom:8px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:700">🏨 ${r.otel}</div>
+          ${r.adres?`<div style="font-size:11px;color:var(--mut);margin-top:2px">📍 ${r.adres}</div>`:''}
+          ${r.giris_tarih?`<div style="font-size:11px;color:var(--mut);font-family:'DM Mono',monospace;margin-top:4px">📅 Giriş: ${r.giris_tarih}</div>`:''}
+          ${r.cikis_tarih?`<div style="font-size:11px;color:var(--mut);font-family:'DM Mono',monospace">📅 Çıkış: ${r.cikis_tarih}</div>`:''}
+          ${r.notlar?`<div style="font-size:11px;color:var(--txt);background:var(--sf);border-radius:6px;padding:6px 8px;margin-top:6px">${r.notlar}</div>`:''}
+        </div>
+        <button onclick="delRezervason(${r.id})" class="btn-del">✕</button>
+      </div>
+    </div>`).join('');
+}
+
+async function addRezervason() {
+  const otel = document.getElementById('rezOtel').value.trim();
+  if(!otel){showToast('⚠️ Otel adı girin!');return;}
+  const adres = document.getElementById('rezAdres').value.trim();
+  const giris_tarih = document.getElementById('rezGiris').value.trim();
+  const cikis_tarih = document.getElementById('rezCikis').value.trim();
+  const notlar = document.getElementById('rezNotlar').value.trim();
+  try {
+    const rows = await sbPost('rezervasyonlar',{trip_id:mySession.tripId,otel,adres,giris_tarih,cikis_tarih,notlar});
+    rezervasyonlar.push(rows[0]);
+    document.getElementById('rezOtel').value='';
+    document.getElementById('rezAdres').value='';
+    document.getElementById('rezGiris').value='';
+    document.getElementById('rezCikis').value='';
+    document.getElementById('rezNotlar').value='';
+    renderRezListModal();
+    showToast('✅ Rezervasyon eklendi!');
+  } catch(e){showToast('❌ '+e.message);}
+}
+
+async function delRezervason(id) {
+  if(!confirm('Bu rezervasyonu silmek istediğinize emin misiniz?')) return;
+  await sbDelete('rezervasyonlar',`id=eq.${id}`);
+  rezervasyonlar = rezervasyonlar.filter(r=>r.id!==id);
+  renderRezListModal();
+  showToast('🗑️ Silindi');
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━
 // ACİL MODAL
 // ━━━━━━━━━━━━━━━━━━━━━━━━
 const ACİL_SABIT = [
-  {isim:'112 Ambulans', tel:'112'},
-  {isim:'155 Polis', tel:'155'},
-  {isim:'156 Jandarma', tel:'156'},
-  {isim:'154 Trafik', tel:'154'},
-  {isim:'158 Orman Yangın', tel:'158'},
+  {isim:'🚨 112 Acil (Ambulans / Polis / İtfaiye)', tel:'112'},
   {isim:'Volvo Acil Yol Yardım', tel:'08505327837'},
   {isim:'Skoda Acil Yol Yardım', tel:'08503337363'},
 ];
