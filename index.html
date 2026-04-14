@@ -1507,33 +1507,30 @@ async function loadButce() {
 
 async function renderButce() {
   await loadButce();
-
-  // Input alanları
-  document.getElementById('butceInputs').innerHTML = BUTCE_KATEGORILER.map(k => `
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-      <div style="width:120px;font-size:13px;font-weight:600;flex-shrink:0">${k.label}</div>
-      <input type="number" id="b_${k.key}" value="${butce[k.key]||''}" placeholder="₺ Limit" min="0" step="1"
-        style="flex:1;background:var(--sf2);border:1px solid var(--bd);border-radius:10px;color:var(--txt);font-family:'Syne',sans-serif;font-size:14px;padding:10px 12px;outline:none;-webkit-appearance:none">
-    </div>`).join('');
-
-  // Durum kartları
   renderButceDurum();
 }
 
 function renderButceDurum() {
   const ortakMasraf = masraflar.filter(e=>!e.sahsi);
   const container = document.getElementById('butceDurum');
+  if(!container) return;
 
-  // Toplam bütçe
   const toplamButce = BUTCE_KATEGORILER.reduce((s,k)=>s+(butce[k.key]||0),0);
   const toplamHarcama = ortakMasraf.reduce((s,e)=>s+e.amount,0);
   const toplamKalan = toplamButce - toplamHarcama;
 
+  // Kategori masraf eşleştirme
+  function getKatMasraf(k) {
+    if(k.cats.length===0) {
+      return ortakMasraf.filter(e => !BUTCE_KATEGORILER.slice(0,-1).some(ok => ok.cats.some(c => e.cat===c)));
+    }
+    return ortakMasraf.filter(e => k.cats.some(c => e.cat===c));
+  }
+
   let html = '';
 
-  // Genel özet kutusu
   if(toplamButce > 0) {
-    const pct = Math.min(100, (toplamHarcama/toplamButce)*100);
+    const pct = Math.min(100,(toplamHarcama/toplamButce)*100);
     const renk = pct>=90?'var(--red)':pct>=70?'#e07820':'var(--grn)';
     html += `<div class="card" style="margin-bottom:12px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
@@ -1550,58 +1547,68 @@ function renderButceDurum() {
         <span>₺${fmt(toplamButce)} toplam</span>
       </div>
     </div>`;
+  } else {
+    html += `<div style="background:#b07d2a10;border:1px dashed var(--acc);border-radius:12px;padding:14px;text-align:center;margin-bottom:12px">
+      <div style="font-size:13px;color:var(--acc);font-weight:700">⚙️ Bütçe limiti girilmemiş</div>
+      <div style="font-size:12px;color:var(--mut);margin-top:4px">Ayarlar sayfasından limit belirleyin.</div>
+    </div>`;
   }
 
-  // Kategori bazlı - harcamaya göre büyükten küçüğe sırala
-  const sirali = [...BUTCE_KATEGORILER].sort((a,b) => {
-    const hA = ortakMasraf.filter(e=>a.cats.length?a.cats.some(c=>e.cat.includes(c.split(' ')[1]||c)):!BUTCE_KATEGORILER.slice(0,-1).some(ok=>ok.cats.some(c=>e.cat.includes(c.split(' ')[1]||c)))).reduce((s,e)=>s+e.amount,0);
-    const hB = ortakMasraf.filter(e=>b.cats.length?b.cats.some(c=>e.cat.includes(c.split(' ')[1]||c)):!BUTCE_KATEGORILER.slice(0,-1).some(ok=>ok.cats.some(c=>e.cat.includes(c.split(' ')[1]||c)))).reduce((s,e)=>s+e.amount,0);
-    return hB - hA;
-  });
+  const sirali = [...BUTCE_KATEGORILER].sort((a,b) =>
+    getKatMasraf(b).reduce((s,e)=>s+e.amount,0) - getKatMasraf(a).reduce((s,e)=>s+e.amount,0)
+  );
+
   html += sirali.map((k,ki) => {
-    const limit = butce[k.key] || 0;
-    // O kategoriye ait masraflar
-    const harcama = ortakMasraf
-      .filter(e => k.cats.length ? k.cats.some(c=>e.cat.includes(c.split(' ')[1]||c)) : !BUTCE_KATEGORILER.slice(0,-1).some(ok=>ok.cats.some(c=>e.cat.includes(c.split(' ')[1]||c))))
-      .reduce((s,e)=>s+e.amount,0);
+    const limit = butce[k.key]||0;
+    const katExp = getKatMasraf(k);
+    const harcama = katExp.reduce((s,e)=>s+e.amount,0);
     const kalan = limit - harcama;
-    const pct = limit>0 ? Math.min(100,(harcama/limit)*100) : 0;
+    const pct = limit>0?Math.min(100,(harcama/limit)*100):0;
     const renk = pct>=90?'var(--red)':pct>=70?'#e07820':'var(--grn)';
     const barColor = limit===0?'var(--bd)':renk;
-
     const accId = 'bacc_'+ki;
-    return `<div style="background:var(--sf);border:1px solid var(--bd);border-radius:12px;padding:14px;margin-bottom:8px;cursor:pointer" onclick="toggleButceAcc('${accId}')">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <div style="font-size:13px;font-weight:700">${k.label}</div>
-        <div style="text-align:right">
-          <div style="font-family:'DM Mono',monospace;font-size:13px;color:var(--acc)">₺${fmt(harcama)}</div>
-          ${limit>0?`<div style="font-size:10px;color:${kalan>=0?'var(--grn)':'var(--red)'};font-family:'DM Mono',monospace">${kalan>=0?'₺'+fmt(kalan)+' kaldı':'₺'+fmt(Math.abs(kalan))+' aşıldı'}</div>`:'<div style="font-size:10px;color:var(--mut)">limit yok</div>'}
+
+    const detaylar = katExp.length
+      ? katExp.slice().sort((a,b)=>b.amount-a.amount).map(e => {
+          const kk = katilimcilar.find(x=>x.id===e.katilimci_id);
+          return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--sf2)">
+            <div style="flex:1;min-width:0">
+              <div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.aciklama}</div>
+              <div style="font-size:10px;color:var(--mut)">${kk?.isim||'?'} · ${e.tarih}</div>
+            </div>
+            <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--acc);margin-left:8px;flex-shrink:0">₺${fmt(e.amount)}</div>
+          </div>`;
+        }).join('')
+      : '<div style="font-size:12px;color:var(--mut);text-align:center;padding:10px">Bu kategoride harcama yok.</div>';
+
+    return `<div style="background:var(--sf);border:1px solid var(--bd);border-radius:12px;padding:14px;margin-bottom:8px">
+      <div onclick="toggleButceAcc('${accId}')" style="cursor:pointer">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div style="font-size:13px;font-weight:700">${k.label} ${katExp.length?`<span style="font-size:10px;color:var(--mut);font-weight:400">(${katExp.length} kalem)</span>`:''}</div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="text-align:right">
+              <div style="font-family:'DM Mono',monospace;font-size:13px;color:var(--acc)">₺${fmt(harcama)}</div>
+              ${limit>0
+                ? `<div style="font-size:10px;color:${kalan>=0?'var(--grn)':'var(--red)'};font-family:'DM Mono',monospace">${kalan>=0?'₺'+fmt(kalan)+' kaldı':'₺'+fmt(Math.abs(kalan))+' aşıldı'}</div>`
+                : '<div style="font-size:10px;color:var(--mut)">limit yok</div>'}
+            </div>
+            <span id="arr_${accId}" style="color:var(--mut);font-size:12px">▼</span>
+          </div>
         </div>
+        <div style="background:var(--sf2);border-radius:20px;height:8px;overflow:hidden">
+          <div style="height:100%;border-radius:20px;background:${barColor};width:${pct}%;transition:width .5s"></div>
+        </div>
+        ${limit>0?`<div style="font-size:10px;color:var(--mut);font-family:'DM Mono',monospace;margin-top:4px;text-align:right">₺${fmt(limit)} limit</div>`:''}
       </div>
-      <div style="background:var(--sf2);border-radius:20px;height:8px;overflow:hidden">
-        <div style="height:100%;border-radius:20px;background:${barColor};width:${pct}%;transition:width .5s"></div>
+      <div id="${accId}" style="display:none;margin-top:10px;border-top:1px solid var(--bd);padding-top:8px">
+        ${detaylar}
       </div>
-      ${limit>0?`<div style="font-size:10px;color:var(--mut);font-family:'DM Mono',monospace;margin-top:4px;text-align:right">₺${fmt(limit)} limit</div>`:''}
-      ${(() => {
-        const katExp = ortakMasraf.filter(e=>k.cats.length?k.cats.some(c=>e.cat.includes(c.split(' ')[1]||c)):!BUTCE_KATEGORILER.slice(0,-1).some(ok=>ok.cats.some(c=>e.cat.includes(c.split(' ')[1]||c))));
-        if(!katExp.length) return '';
-        return '<div style="margin-top:8px;border-top:1px solid var(--bd);padding-top:8px">'+
-          katExp.slice().sort((a,b)=>b.amount-a.amount).map(e=>{
-            const kk=katilimcilar.find(x=>x.id===e.katilimci_id);
-            return '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:11px;border-bottom:1px solid var(--sf2)">'+
-              '<span style="color:var(--mut)">'+e.aciklama+' <span style="color:var(--mut);font-size:10px">('+( kk?.isim||'?')+')</span></span>'+
-              '<span style="font-family:DM Mono,monospace;color:var(--acc)">₺'+fmt(e.amount)+'</span></div>';
-          }).join('')+'</div>';
-      })()}
     </div>`;
   }).join('');
 
-  if(!toplamButce && !masraflar.length) {
-    container.innerHTML = '<div class="empty"><div class="ico">🎯</div><p>Bütçe limitlerini belirleyin.<br>Harcamalar otomatik düşülür.</p></div>';
-    return;
-  }
   container.innerHTML = html;
 }
+
 
 async function saveButce() {
   const data = {trip_id: mySession.tripId};
