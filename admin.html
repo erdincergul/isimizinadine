@@ -123,6 +123,11 @@ async function sbGet(table, filter='') {
   return r.json();
 }
 
+async function sbDelete(table, filter) {
+  const r = await fetch(`${SB_URL}/rest/v1/${table}?${filter}`,{method:'DELETE',headers:H});
+  if(!r.ok) throw new Error(table+' silinemedi: '+r.status);
+}
+
 function login() {
   const pass = document.getElementById('adminPass').value;
   const err = document.getElementById('loginErr');
@@ -174,8 +179,8 @@ async function loadData() {
       const bekleyen = trips_k.filter(k=>k.durum==='beklemede').length;
       const tarih = new Date(s.created_at).toLocaleDateString('tr-TR',{day:'2-digit',month:'2-digit',year:'numeric'});
 
-      return `<div class="trip-card" onclick="toggleTrip('t${si}')">
-        <div class="trip-hdr">
+      return `<div class="trip-card" id="tripcard_${si}">
+        <div class="trip-hdr" onclick="toggleTrip('t${si}')" style="cursor:pointer">
           <div style="font-size:20px">🚗</div>
           <div>
             <div class="trip-name">${s.isim}</div>
@@ -184,11 +189,14 @@ async function loadData() {
           <div class="trip-code">${s.davet_kodu}</div>
           <div class="trip-date">${tarih}</div>
         </div>
-        <div class="trip-stats">
-          <div class="ts">👥 <strong>${trips_k.length}</strong> katılımcı</div>
-          <div class="ts">💸 <strong>${trips_m.length}</strong> masraf</div>
-          <div class="ts">💰 <strong>₺${toplam.toLocaleString('tr-TR',{maximumFractionDigits:0})}</strong> toplam</div>
-          ${bekleyen>0?`<div class="ts">⏳ <strong style="color:#e07820">${bekleyen}</strong> bekleyen</div>`:''}
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px">
+          <div class="trip-stats">
+            <div class="ts">👥 <strong>${trips_k.length}</strong> katılımcı</div>
+            <div class="ts">💸 <strong>${trips_m.length}</strong> masraf</div>
+            <div class="ts">💰 <strong>₺${toplam.toLocaleString('tr-TR',{maximumFractionDigits:0})}</strong> toplam</div>
+            ${bekleyen>0?`<div class="ts">⏳ <strong style="color:#e07820">${bekleyen}</strong> bekleyen</div>`:''}
+          </div>
+          <button onclick="deleteTrip('${s.id}','${s.isim}',${si})" style="background:#b8402a18;border:1px solid #b8402a40;color:var(--red);padding:6px 12px;border-radius:8px;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0">🗑️ Sil</button>
         </div>
         <div class="katilimci-list" id="t${si}">
           ${trips_k.map((k,ki)=>`
@@ -218,6 +226,39 @@ function toggleTrip(id) {
   const el = document.getElementById(id);
   if(!el) return;
   el.style.display = el.style.display==='block' ? 'none' : 'block';
+}
+
+async function deleteTrip(tripId, tripIsim, si) {
+  if(!confirm(`"${tripIsim}" seyahatini silmek istediğinize emin misiniz?\n\nBu işlem geri alınamaz! Tüm masraflar, katılımcılar, notlar ve fotoğraflar silinecek.`)) return;
+
+  const btn = event.target;
+  btn.textContent = '⏳ Siliniyor...';
+  btn.disabled = true;
+
+  try {
+    // Sırayla tüm bağlı verileri sil
+    await sbDelete('masraflar', `trip_id=eq.${tripId}`);
+    await sbDelete('notlar', `trip_id=eq.${tripId}`);
+    await sbDelete('guzergahlar', `trip_id=eq.${tripId}`);
+    await sbDelete('mekanlar', `trip_id=eq.${tripId}`);
+    await sbDelete('fotograflar', `trip_id=eq.${tripId}`);
+    await sbDelete('butce', `trip_id=eq.${tripId}`);
+    await sbDelete('rezervasyonlar', `trip_id=eq.${tripId}`);
+    await sbDelete('acil_kisiler', `trip_id=eq.${tripId}`);
+    await sbDelete('katilimcilar', `trip_id=eq.${tripId}`);
+    await sbDelete('seyahatler', `id=eq.${tripId}`);
+
+    // Kartı ekrandan kaldır
+    const card = document.getElementById('tripcard_'+si);
+    if(card) card.remove();
+
+    // İstatistikleri güncelle
+    loadData();
+  } catch(e) {
+    alert('Hata: '+e.message);
+    btn.textContent = '🗑️ Sil';
+    btn.disabled = false;
+  }
 }
 
 // Oturum kontrolü
