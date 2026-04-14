@@ -519,11 +519,19 @@ async function joinTrip() {
     mySession = {name, email, sessionId, tripId:trip.id, katilimciId, iban, rol, durum};
     localStorage.setItem('mySession', JSON.stringify(mySession));
     document.getElementById('welcomeScreen').style.display='none';
-    // loadAll durum kontrolü yapacak, ona bırak
-    await loadAll();
-    if(durum === 'onaylandi') {
-      showToast('✅ '+trip.isim+' seyahatine katıldın!');
+    // Durum kontrolü burada yap
+    if(durum === 'engellendi') {
+      showBannedScreen();
+      return;
     }
+    if(durum === 'beklemede') {
+      showWaitingScreen();
+      return;
+    }
+    // Onaylı
+    document.getElementById('app').style.display='block';
+    await loadAll();
+    showToast('✅ '+trip.isim+' seyahatine katıldın!');
   } catch(e){err.style.display='block';err.textContent='Hata: '+e.message;}
 }
 
@@ -550,33 +558,29 @@ async function loadAll() {
     masraflar = mList;
     places = pList;
     notes = nList;
-    // Durum kontrolü — tumKatilimcilar'dan ara
+    // Durum kontrolü — sunucudan gelen veriye göre
     const myK2 = tumKatilimcilar.find(k=>k.id===mySession.katilimciId);
-    if(!myK2) {
-      // Kayıt yok — beklemede ekranı göster
-      showWaitingScreen();
-      return;
-    }
+    if(!myK2) { showWaitingScreen(); return; }
+
+    mySession.rol = myK2.rol;
+    mySession.durum = myK2.durum;
+    localStorage.setItem('mySession', JSON.stringify(mySession));
+
     if(myK2.durum === 'engellendi') {
-      localStorage.removeItem('mySession');
       document.getElementById('app').style.display='none';
       showBannedScreen();
       return;
     }
     if(myK2.durum === 'beklemede') {
-      mySession.rol = myK2.rol;
-      localStorage.setItem('mySession', JSON.stringify(mySession));
       document.getElementById('app').style.display='none';
       showWaitingScreen();
       return;
     }
-    // Onaylı — devam et
-    mySession.rol = myK2.rol;
-    mySession.durum = myK2.durum;
-    localStorage.setItem('mySession', JSON.stringify(mySession));
-    // Uygulama görünür olsun
+    // Onaylı
     document.getElementById('app').style.display='block';
     document.getElementById('welcomeScreen').style.display='none';
+    const ws = document.getElementById('waitingScreen');
+    if(ws) ws.style.display='none';
     whoIdx = katilimcilar.findIndex(k=>k.id===mySession.katilimciId);
     if(whoIdx<0) whoIdx=0;
     sync('ok','Bağlandı ✓');
@@ -1171,32 +1175,34 @@ function renderSettings(){
 }
 
 async function approveKatilimci(id) {
-  const k = tumKatilimcilar.find(k=>k.id===id);
-  const isim = k?.isim || 'Kullanıcı';
   try {
-    await sbPatch('katilimcilar',`id=eq.${id}`,{durum:'onaylandi'});
-    if(k) {
-      k.durum = 'onaylandi';
-      if(!katilimcilar.find(x=>x.id===id)) katilimcilar.push(k);
-    }
-    tumKatilimcilar = tumKatilimcilar.map(x=>x.id===id?{...x,durum:'onaylandi'}:x);
-    renderAll();
+    await sbPatch('katilimcilar','id=eq.'+id,{durum:'onaylandi'});
+    // tumKatilimcilar güncelle
+    const k = tumKatilimcilar.find(x=>x.id===id);
+    if(k) k.durum = 'onaylandi';
+    // Aktif listeye ekle
+    if(!katilimcilar.find(x=>x.id===id) && k) katilimcilar.push({...k, durum:'onaylandi'});
+    const isim = k?.isim || 'Kullanıcı';
     showToast('✅ '+isim+' onaylandı!');
-    showPopup('✅ '+isim+' seyahate onaylandı!');
-  } catch(e) { showToast('❌ '+e.message); }
+    showPopup('✅ '+isim+' seyahate kabul edildi!');
+    renderSettings();
+  } catch(e) { showToast('❌ Hata: '+e.message); console.error(e); }
 }
 
 async function removeKatilimci(id) {
-  const k = tumKatilimcilar.find(k=>k.id===id);
-  const isim = k?.isim || 'Kullanıcı';
-  if(!confirm(`"${isim}" kişisini engellemek istediğinize emin misiniz?`)) return;
   try {
-    await sbPatch('katilimcilar',`id=eq.${id}`,{durum:'engellendi', session_id:'blocked_'+Date.now()});
+    const k = tumKatilimcilar.find(x=>x.id===id);
+    const isim = k?.isim || 'Kullanıcı';
+    if(!confirm(isim+' kişisini engellemek istediğinize emin misiniz?')) return;
+    await sbPatch('katilimcilar','id=eq.'+id,{durum:'engellendi', session_id:'blocked_'+Date.now()});
+    // Aktif listeden çıkar
     katilimcilar = katilimcilar.filter(x=>x.id!==id);
-    tumKatilimcilar = tumKatilimcilar.map(x=>x.id===id?{...x,durum:'engellendi'}:x);
-    renderAll();
+    // tumKatilimcilar güncelle
+    const kt = tumKatilimcilar.find(x=>x.id===id);
+    if(kt) kt.durum = 'engellendi';
     showToast('🚫 '+isim+' engellendi');
-  } catch(e) { showToast('❌ '+e.message); }
+    renderSettings();
+  } catch(e) { showToast('❌ Hata: '+e.message); console.error(e); }
 }
 
 async function saveMyIban(){
@@ -1718,11 +1724,25 @@ setInterval(async()=>{
     ]);
     // Onay durumu kontrolü
     const myStatus = kList.find(k=>k.id===mySession?.katilimciId);
-    if(myStatus?.durum==='onaylandi' && document.getElementById('waitingScreen')?.style.display==='flex') {
-      document.getElementById('waitingScreen').style.display='none';
+    if(myStatus) {
+      mySession.durum = myStatus.durum;
+      localStorage.setItem('mySession', JSON.stringify(mySession));
+    }
+    const waitEl = document.getElementById('waitingScreen');
+    if(myStatus?.durum==='onaylandi' && waitEl && waitEl.style.display!=='none') {
+      waitEl.style.display='none';
       document.getElementById('app').style.display='block';
-      katilimcilar=kList; masraflar=mList; notes=nList;
-      renderAll(); showToast('✅ Onaylandınız! Hoş geldiniz!');
+      tumKatilimcilar=kList;
+      katilimcilar=kList.filter(k=>k.durum!=='engellendi');
+      masraflar=mList; notes=nList;
+      renderAll();
+      showToast('✅ Onaylandınız! Hoş geldiniz!');
+      showPopup('🎉 Seyahate hoş geldiniz!');
+      return;
+    }
+    if(myStatus?.durum==='engellendi') {
+      document.getElementById('app').style.display='none';
+      showBannedScreen();
       return;
     }
     const changed = mList.length!==masraflar.length || nList.length!==notes.length || kList.filter(k=>k.durum!=='engellendi').length!==katilimcilar.filter(k=>k.durum!=='engellendi').length;
