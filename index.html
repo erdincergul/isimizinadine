@@ -213,6 +213,7 @@ input::placeholder,textarea::placeholder{color:var(--mut)}
   <span id="stxt">Bağlanıyor...</span>
   <div style="margin-left:auto;display:flex;gap:6px">
     <button onclick="loadAll()" style="background:var(--sf);border:1px solid var(--bd);color:var(--mut);padding:3px 9px;border-radius:20px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer">🔄</button>
+    <button onclick="openAcilModal()" style="background:#b8402a;border:none;color:#fff;padding:3px 10px;border-radius:20px;font-family:'Syne',sans-serif;font-size:10px;font-weight:800;cursor:pointer">🚨 ACİL</button>
     <button onclick="goTabByName('ayarlar')" style="background:var(--sf);border:1px solid var(--bd);color:var(--mut);padding:3px 9px;border-radius:20px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer">⚙️</button>
   </div>
 </div>
@@ -404,6 +405,37 @@ input::placeholder,textarea::placeholder{color:var(--mut)}
       <p style="font-size:12px;color:var(--mut);margin-bottom:10px">Diğerleri size ödeme yapabilsin diye IBAN'ınızı girin.</p>
       <input class="mono" type="text" id="myIban" placeholder="TR00 0000 0000 0000 0000 0000 00">
       <button class="btn-primary" onclick="saveMyIban()" style="margin-top:8px">Kaydet</button>
+    </div>
+    <div class="card" style="margin-top:0">
+      <div class="ctitle">🎯 Bütçe Limitleri</div>
+      <div id="butceAyarInputs"></div>
+      <button class="btn-primary" onclick="saveButceFromAyarlar()">💾 Bütçeyi Kaydet</button>
+    </div>
+    <div class="card" style="margin-top:0">
+      <div class="ctitle">📋 Belgelerim</div>
+      <p style="font-size:12px;color:var(--mut);margin-bottom:10px">Ehliyet, kimlik, ruhsat fotoğraflarınızı ekleyin.</p>
+      <div id="belgelerList"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px" id="belgeEkleRow">
+        <select id="belgeTip" style="flex:1;min-width:120px">
+          <option value="ehliyet">🪪 Ehliyet</option>
+          <option value="kimlik">🪪 Kimlik</option>
+          <option value="ruhsat">📄 Ruhsat</option>
+          <option value="sigorta">📄 Sigorta</option>
+          <option value="diger">📎 Diğer</option>
+        </select>
+        <label for="belgeInput" style="background:var(--acc);color:#fff;padding:10px 14px;border-radius:10px;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;cursor:pointer">📷 Ekle</label>
+        <input type="file" id="belgeInput" accept="image/*" style="display:none" onchange="uploadBelge(event)">
+      </div>
+    </div>
+    <div class="card" style="margin-top:0">
+      <div class="ctitle">🚨 Acil Kişilerim</div>
+      <p style="font-size:12px;color:var(--mut);margin-bottom:10px">Acil durumda aranacak kişileri ekleyin.</p>
+      <div id="acilKisilerList"></div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <input type="text" id="acilIsim" placeholder="Ad Soyad" style="flex:1">
+        <input type="tel" id="acilTel" placeholder="Telefon" style="flex:1" inputmode="tel">
+        <button onclick="addAcilKisi()" style="background:var(--acc);border:none;color:#fff;padding:10px 14px;border-radius:10px;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer">+</button>
+      </div>
     </div>
     <button class="btn-sec" onclick="loadAll()">🔄 Yenile</button>
     <button class="btn-sec" style="margin-top:8px;color:var(--red);border-color:#b8402a35" onclick="leaveTrip()">🚪 Seyahatten Ayrıl</button>
@@ -786,7 +818,8 @@ async function addExpense() {
   const aciklama = document.getElementById('fDesc').value.trim();
   const amount   = parseFloat(document.getElementById('fAmt').value);
   const cat      = document.getElementById('fCat').value;
-  if(!aciklama||!amount||amount<=0){showToast('⚠️ Açıklama ve tutar girin!');return;}
+  if(!amount||amount<=0){showToast('⚠️ Tutar girin!');return;}
+  if(!aciklama) aciklama = cat;
 
   const sahsi = document.getElementById('sahsiCheck').textContent==='✓';
   const katilimci = katilimcilar[whoIdx];
@@ -1203,6 +1236,11 @@ function renderSettings(){
   }).join('');
 
   document.getElementById('katilimciList').innerHTML = listHTML;
+  // Bütçe inputlarını doldur
+  loadButce().then(()=>renderButceAyarInputs());
+  // Belgeler ve acil kişileri yükle
+  loadBelgeler();
+  loadAcilKisiler();
 }
 
 async function approveKatilimci(id) {
@@ -1541,6 +1579,17 @@ function renderButceDurum() {
         <div style="height:100%;border-radius:20px;background:${barColor};width:${pct}%;transition:width .5s"></div>
       </div>
       ${limit>0?`<div style="font-size:10px;color:var(--mut);font-family:'DM Mono',monospace;margin-top:4px;text-align:right">₺${fmt(limit)} limit</div>`:''}
+      ${(() => {
+        const katExp = ortakMasraf.filter(e=>k.cats.length?k.cats.some(c=>e.cat.includes(c.split(' ')[1]||c)):!BUTCE_KATEGORILER.slice(0,-1).some(ok=>ok.cats.some(c=>e.cat.includes(c.split(' ')[1]||c))));
+        if(!katExp.length) return '';
+        return '<div style="margin-top:8px;border-top:1px solid var(--bd);padding-top:8px">'+
+          katExp.slice().sort((a,b)=>b.amount-a.amount).map(e=>{
+            const kk=katilimcilar.find(x=>x.id===e.katilimci_id);
+            return '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:11px;border-bottom:1px solid var(--sf2)">'+
+              '<span style="color:var(--mut)">'+e.aciklama+' <span style="color:var(--mut);font-size:10px">('+( kk?.isim||'?')+')</span></span>'+
+              '<span style="font-family:DM Mono,monospace;color:var(--acc)">₺'+fmt(e.amount)+'</span></div>';
+          }).join('')+'</div>';
+      })()}
     </div>`;
   }).join('');
 
@@ -2015,6 +2064,170 @@ async function kesfetGuzergaha(isim, koordinat) {
     places.push(rows[0]);
     showToast('📍 "'+isim+'" güzergaha eklendi!');
   } catch(e) { showToast('❌ '+e.message); }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━
+// ACİL MODAL
+// ━━━━━━━━━━━━━━━━━━━━━━━━
+const ACİL_SABIT = [
+  {isim:'112 Ambulans', tel:'112'},
+  {isim:'155 Polis', tel:'155'},
+  {isim:'156 Jandarma', tel:'156'},
+  {isim:'154 Trafik', tel:'154'},
+  {isim:'158 Orman Yangın', tel:'158'},
+  {isim:'Volvo Acil Yol Yardım', tel:'08505327837'},
+  {isim:'Skoda Acil Yol Yardım', tel:'08503337363'},
+];
+
+async function openAcilModal() {
+  // Acil kişileri yükle
+  let kisiListesi = [];
+  try {
+    kisiListesi = await sbGet('acil_kisiler',`trip_id=eq.${mySession.tripId}&order=created_at.asc`);
+  } catch(e){}
+
+  const modal = document.getElementById('modal');
+  modal.style.display = 'block';
+  modal.innerHTML = `<div class="modal-overlay" onclick="closeModal()">
+    <div class="modal" onclick="event.stopPropagation()" style="padding:20px 16px 36px">
+      <div class="modal-hdr">
+        <div class="modal-title" style="color:var(--red)">🚨 ACİL</div>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+
+      <div class="slabel">📞 Acil Hatlar</div>
+      ${ACİL_SABIT.map(k=>`
+        <a href="tel:${k.tel}" style="display:flex;align-items:center;justify-content:space-between;background:var(--sf2);border:1px solid var(--bd);border-radius:10px;padding:12px 14px;margin-bottom:8px;text-decoration:none;color:var(--txt)">
+          <div>
+            <div style="font-size:13px;font-weight:700">${k.isim}</div>
+            <div style="font-size:12px;color:var(--mut);font-family:'DM Mono',monospace">${k.tel}</div>
+          </div>
+          <div style="background:var(--grn);color:#fff;padding:8px 14px;border-radius:8px;font-size:13px;font-weight:700">📞 Ara</div>
+        </a>`).join('')}
+
+      ${kisiListesi.length?`
+      <div class="slabel" style="margin-top:8px">👤 Acil Kişilerim</div>
+      ${kisiListesi.map(k=>`
+        <a href="tel:${k.telefon}" style="display:flex;align-items:center;justify-content:space-between;background:#b8402a08;border:1px solid #b8402a30;border-radius:10px;padding:12px 14px;margin-bottom:8px;text-decoration:none;color:var(--txt)">
+          <div>
+            <div style="font-size:13px;font-weight:700">${k.isim}</div>
+            <div style="font-size:12px;color:var(--mut);font-family:'DM Mono',monospace">${k.telefon}</div>
+          </div>
+          <div style="background:var(--red);color:#fff;padding:8px 14px;border-radius:8px;font-size:13px;font-weight:700">📞 Ara</div>
+        </a>`).join('')}`:''}
+    </div>
+  </div>`;
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━
+// ACİL KİŞİLER
+// ━━━━━━━━━━━━━━━━━━━━━━━━
+async function loadAcilKisiler() {
+  try {
+    const rows = await sbGet('acil_kisiler',`trip_id=eq.${mySession.tripId}&katilimci_id=eq.${mySession.katilimciId}&order=created_at.asc`);
+    const list = document.getElementById('acilKisilerList');
+    if(!list) return;
+    list.innerHTML = rows.map(k=>`
+      <div style="display:flex;align-items:center;gap:8px;background:var(--sf2);border-radius:10px;padding:10px 12px;margin-bottom:8px">
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:700">${k.isim}</div>
+          <div style="font-size:11px;color:var(--mut);font-family:'DM Mono',monospace">${k.telefon}</div>
+        </div>
+        <a href="tel:${k.telefon}" style="background:var(--grn);color:#fff;padding:5px 10px;border-radius:8px;font-size:11px;font-weight:700;text-decoration:none">📞</a>
+        <button onclick="delAcilKisi(${k.id})" class="btn-del">✕</button>
+      </div>`).join('') || '<div style="font-size:12px;color:var(--mut)">Henüz kişi eklenmedi.</div>';
+  } catch(e){}
+}
+
+async function addAcilKisi() {
+  const isim = document.getElementById('acilIsim').value.trim();
+  const telefon = document.getElementById('acilTel').value.trim();
+  if(!isim||!telefon){showToast('⚠️ İsim ve telefon girin!');return;}
+  try {
+    await sbPost('acil_kisiler',{trip_id:mySession.tripId,katilimci_id:mySession.katilimciId,isim,telefon});
+    document.getElementById('acilIsim').value='';
+    document.getElementById('acilTel').value='';
+    loadAcilKisiler();
+    showToast('✅ Eklendi!');
+  } catch(e){showToast('❌ '+e.message);}
+}
+
+async function delAcilKisi(id) {
+  await sbDelete('acil_kisiler',`id=eq.${id}`);
+  loadAcilKisiler();
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━
+// BELGELER
+// ━━━━━━━━━━━━━━━━━━━━━━━━
+async function loadBelgeler() {
+  try {
+    const rows = await sbGet('belgeler',`katilimci_id=eq.${mySession.katilimciId}&order=created_at.asc`);
+    const list = document.getElementById('belgelerList');
+    if(!list) return;
+    const tipIsim = {ehliyet:'🪪 Ehliyet',kimlik:'🪪 Kimlik',ruhsat:'📄 Ruhsat',sigorta:'📄 Sigorta',diger:'📎 Diğer'};
+    list.innerHTML = rows.map(b=>{
+      const url = `${SB_URL}/storage/v1/object/public/${BUCKET}/${b.dosya_yolu}`;
+      return `<div style="display:flex;align-items:center;gap:8px;background:var(--sf2);border-radius:10px;padding:10px 12px;margin-bottom:8px">
+        <div style="font-size:20px">${tipIsim[b.tip]?.split(' ')[0]||'📎'}</div>
+        <div style="flex:1;font-size:13px;font-weight:700">${tipIsim[b.tip]||b.tip}</div>
+        <a href="${url}" target="_blank" style="background:var(--acc);color:#fff;padding:5px 10px;border-radius:8px;font-size:11px;font-weight:700;text-decoration:none">👁️ Gör</a>
+        <button onclick="delBelge(${b.id},'${b.dosya_yolu}')" class="btn-del">✕</button>
+      </div>`;
+    }).join('') || '<div style="font-size:12px;color:var(--mut)">Henüz belge eklenmedi.</div>';
+  } catch(e){}
+}
+
+async function uploadBelge(e) {
+  const file = e.target.files&&e.target.files[0]; if(!file) return;
+  const tip = document.getElementById('belgeTip').value;
+  showToast('⏳ Yükleniyor...');
+  try {
+    const ext = (file.name||'belge.jpg').split('.').pop().toLowerCase();
+    const path = `belge_${mySession.katilimciId}_${tip}_${Date.now()}.${ext}`;
+    const ab = await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=()=>rej(new Error('Okunamadı'));r.readAsArrayBuffer(file);});
+    const r = await fetch(`${SB_URL}/storage/v1/object/${BUCKET}/${path}`,{method:'POST',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':file.type||'image/jpeg','x-upsert':'true'},body:ab});
+    if(!r.ok) throw new Error('Upload '+r.status);
+    await sbPost('belgeler',{katilimci_id:mySession.katilimciId,tip,dosya_yolu:path});
+    document.getElementById('belgeInput').value='';
+    loadBelgeler();
+    showToast('✅ Belge eklendi!');
+  } catch(err){showToast('❌ '+err.message);}
+}
+
+async function delBelge(id, path) {
+  if(!confirm('Bu belgeyi silmek istediğinize emin misiniz?')) return;
+  await fetch(`${SB_URL}/storage/v1/object/${BUCKET}/${path}`,{method:'DELETE',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}});
+  await sbDelete('belgeler',`id=eq.${id}`);
+  loadBelgeler();
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━
+// BÜTÇE AYARLAR
+// ━━━━━━━━━━━━━━━━━━━━━━━━
+function renderButceAyarInputs() {
+  const el = document.getElementById('butceAyarInputs');
+  if(!el) return;
+  el.innerHTML = BUTCE_KATEGORILER.map(k=>`
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <div style="width:110px;font-size:12px;font-weight:600;flex-shrink:0">${k.label}</div>
+      <input type="number" id="ba_${k.key}" value="${butce[k.key]||''}" placeholder="₺ Limit" min="0" step="1"
+        style="flex:1;background:var(--sf2);border:1px solid var(--bd);border-radius:10px;color:var(--txt);font-family:'Syne',sans-serif;font-size:13px;padding:9px 12px;outline:none;-webkit-appearance:none">
+    </div>`).join('');
+}
+
+async function saveButceFromAyarlar() {
+  const data = {trip_id:mySession.tripId};
+  BUTCE_KATEGORILER.forEach(k=>{
+    data[k.key] = parseFloat(document.getElementById('ba_'+k.key)?.value||0)||0;
+  });
+  try {
+    const existing = await sbGet('butce',`trip_id=eq.${mySession.tripId}`);
+    if(existing.length) await sbPatch('butce',`trip_id=eq.${mySession.tripId}`,data);
+    else await sbPost('butce',data);
+    butce = data;
+    showToast('✅ Bütçe kaydedildi!');
+  } catch(e){showToast('❌ '+e.message);}
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━
