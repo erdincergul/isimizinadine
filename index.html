@@ -479,18 +479,25 @@ async function joinTrip() {
 
     // Aynı email ile zaten katılmış mı?
     const byEmail = await sbGet('katilimcilar',`trip_id=eq.${trip.id}&email=eq.${encodeURIComponent(email)}`);
-    let katilimciId, iban='', rol='uye';
+    let katilimciId, iban='', rol='uye', durum='beklemede';
     if(byEmail.length) {
-      // Var olan kaydı güncelle (session yenile)
+      // Engellenmiş mi?
+      if(byEmail[0].durum==='engellendi') {
+        err.style.display='block';
+        err.textContent='Bu seyahate erişiminiz engellenmiştir.';
+        return;
+      }
+      // Var olan kaydı güncelle
       katilimciId = byEmail[0].id;
       iban = byEmail[0].iban||'';
       rol = byEmail[0].rol||'uye';
+      durum = byEmail[0].durum||'beklemede';
       await sbPatch('katilimcilar',`id=eq.${katilimciId}`,{session_id:sessionId, isim:name});
     } else {
       const rows = await sbPost('katilimcilar',{trip_id:trip.id, isim:name, email, session_id:sessionId, iban:'', rol:'uye', durum:'beklemede'});
       katilimciId = rows[0].id;
     }
-    mySession = {name, email, sessionId, tripId:trip.id, katilimciId, iban, rol};
+    mySession = {name, email, sessionId, tripId:trip.id, katilimciId, iban, rol, durum};
     localStorage.setItem('mySession', JSON.stringify(mySession));
     document.getElementById('welcomeScreen').style.display='none';
     document.getElementById('app').style.display='block';
@@ -1496,6 +1503,31 @@ function closeModal(){document.getElementById('modal').style.display='none';docu
 function sync(s,t){document.getElementById('sdot').className='sdot '+s;document.getElementById('stxt').textContent=t;}
 function fmt(n){return n.toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+
+function showPopup(msg) {
+  const popup = document.createElement('div');
+  popup.style.cssText = `
+    position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);
+    background:var(--sf);border:1px solid var(--bd);border-radius:16px;
+    padding:14px 18px;max-width:320px;width:90%;
+    box-shadow:0 8px 32px #00000022;z-index:400;
+    font-family:'Syne',sans-serif;font-size:13px;color:var(--txt);
+    transition:transform .3s ease,opacity .3s ease;opacity:0;
+    white-space:pre-line;line-height:1.5;
+  `;
+  popup.textContent = msg;
+  document.body.appendChild(popup);
+  // Animasyon
+  requestAnimationFrame(()=>{
+    popup.style.transform='translateX(-50%) translateY(0)';
+    popup.style.opacity='1';
+  });
+  setTimeout(()=>{
+    popup.style.transform='translateX(-50%) translateY(-80px)';
+    popup.style.opacity='0';
+    setTimeout(()=>popup.remove(), 300);
+  }, 4000);
+}
 function copyIban(btn,txt){navigator.clipboard.writeText(txt).then(()=>{btn.textContent='✅';btn.style.color='var(--grn)';setTimeout(()=>{btn.textContent='📋 Kopyala';btn.style.color='';},2000);});}
 
 // Periyodik sync
@@ -1518,13 +1550,35 @@ setInterval(async()=>{
     }
     const changed = mList.length!==masraflar.length || nList.length!==notes.length || kList.length!==katilimcilar.length;
     if(changed){
+      // Yeni masraf kontrolü — kim ne ekledi?
+      if(mList.length > masraflar.length) {
+        const yeniMasraflar = mList.filter(m => !masraflar.find(e=>e.id===m.id));
+        yeniMasraflar.forEach(m => {
+          if(m.katilimci_id !== mySession?.katilimciId) {
+            const k = kList.find(k=>k.id===m.katilimci_id);
+            const isim = k?.isim || 'Biri';
+            showPopup(`💸 ${isim} masraf ekledi!\n${m.cat} ${m.aciklama} — ₺${m.amount.toLocaleString('tr-TR')}`);
+          }
+        });
+      }
+      // Yeni not kontrolü
+      if(nList.length > notes.length) {
+        const yeniNotlar = nList.filter(n => !notes.find(e=>e.id===n.id));
+        yeniNotlar.forEach(n => {
+          if(n.katilimci_id !== mySession?.katilimciId) {
+            showPopup(`💬 ${n.yazar} not ekledi!\n"${n.mesaj.slice(0,60)}${n.mesaj.length>60?'...':''}"`);
+          }
+        });
+      }
+      // Yeni katılımcı
+      if(kList.length > katilimcilar.length) {
+        const yeni = kList.filter(k => !katilimcilar.find(e=>e.id===k.id));
+        yeni.forEach(k => showPopup(`👋 ${k.isim} seyahate katıldı!`));
+      }
       masraflar=mList; notes=nList; katilimcilar=kList;
-      // Kendi indexini güncelle
       const myIdx = katilimcilar.findIndex(k=>k.id===mySession.katilimciId);
       if(myIdx>=0) whoIdx=myIdx;
       renderAll();
-      if(kList.length!==katilimcilar.length) showToast('👋 Yeni katılımcı!');
-      else showToast('🔄 Güncellendi!');
     }
   }catch{}
 },10000);
