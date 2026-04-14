@@ -1145,8 +1145,8 @@ function renderSettings(){
             <div style="font-size:13px;font-weight:700">${k.isim}</div>
             <div style="font-size:10px;color:var(--mut)">${k.email||''}</div>
           </div>
-          <button onclick="approveKatilimci(${k.id},'${k.isim}')" style="background:#2d7a4f18;border:1px solid #2d7a4f40;color:#2d7a4f;padding:5px 10px;border-radius:8px;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;cursor:pointer">✅ Onayla</button>
-          <button onclick="removeKatilimci(${k.id},'${k.isim}')" style="background:#b8402a18;border:1px solid #b8402a40;color:var(--red);padding:5px 10px;border-radius:8px;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;cursor:pointer">🚫 Reddet</button>
+          <button onclick="approveKatilimci(${k.id})" style="background:#2d7a4f18;border:1px solid #2d7a4f40;color:#2d7a4f;padding:5px 10px;border-radius:8px;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;cursor:pointer">✅ Onayla</button>
+          <button onclick="removeKatilimci(${k.id})" style="background:#b8402a18;border:1px solid #b8402a40;color:var(--red);padding:5px 10px;border-radius:8px;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;cursor:pointer">🚫 Reddet</button>
         </div>`).join('')}
     </div>`;
   }
@@ -1162,36 +1162,38 @@ function renderSettings(){
         <div style="font-size:10px;color:var(--mut);font-family:'DM Mono',monospace">${k.email||''} · ${myCnt} masraf${k.iban?' · IBAN ✓':''}</div>
       </div>
       ${isMe?'<span style="font-size:11px;color:var(--grn);font-weight:700">Ben</span>':''}
-      ${isAdmin&&!isMe&&!engelli?`<button onclick="removeKatilimci(${k.id},'${k.isim}')" style="background:none;border:1px solid #b8402a35;color:var(--red);padding:4px 8px;border-radius:8px;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;cursor:pointer">🚫 Engelle</button>`:''}
-      ${isAdmin&&!isMe&&engelli?`<button onclick="approveKatilimci(${k.id},'${k.isim}')" style="background:none;border:1px solid #2d7a4f40;color:#2d7a4f;padding:4px 8px;border-radius:8px;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;cursor:pointer">✅ Aktif Et</button>`:''}
+      ${isAdmin&&!isMe&&!engelli?`<button onclick="removeKatilimci(${k.id})" style="background:none;border:1px solid #b8402a35;color:var(--red);padding:4px 8px;border-radius:8px;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;cursor:pointer">🚫 Engelle</button>`:''}
+      ${isAdmin&&!isMe&&engelli?`<button onclick="approveKatilimci(${k.id})" style="background:none;border:1px solid #2d7a4f40;color:#2d7a4f;padding:4px 8px;border-radius:8px;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;cursor:pointer">✅ Aktif Et</button>`:''}
     </div>`;
   }).join('');
 
   document.getElementById('katilimciList').innerHTML = listHTML;
 }
 
-async function approveKatilimci(id, isim) {
+async function approveKatilimci(id) {
+  const k = tumKatilimcilar.find(k=>k.id===id);
+  const isim = k?.isim || 'Kullanıcı';
   try {
     await sbPatch('katilimcilar',`id=eq.${id}`,{durum:'onaylandi'});
-    const approved = tumKatilimcilar.find(k=>k.id===id);
-    if(approved) {
-      approved.durum = 'onaylandi';
-      if(!katilimcilar.find(k=>k.id===id)) katilimcilar.push(approved);
+    if(k) {
+      k.durum = 'onaylandi';
+      if(!katilimcilar.find(x=>x.id===id)) katilimcilar.push(k);
     }
-    tumKatilimcilar = tumKatilimcilar.map(k=>k.id===id?{...k,durum:'onaylandi'}:k);
+    tumKatilimcilar = tumKatilimcilar.map(x=>x.id===id?{...x,durum:'onaylandi'}:x);
     renderAll();
     showToast('✅ '+isim+' onaylandı!');
     showPopup('✅ '+isim+' seyahate onaylandı!');
   } catch(e) { showToast('❌ '+e.message); }
 }
 
-async function removeKatilimci(id, isim) {
+async function removeKatilimci(id) {
+  const k = tumKatilimcilar.find(k=>k.id===id);
+  const isim = k?.isim || 'Kullanıcı';
   if(!confirm(`"${isim}" kişisini engellemek istediğinize emin misiniz?`)) return;
   try {
     await sbPatch('katilimcilar',`id=eq.${id}`,{durum:'engellendi', session_id:'blocked_'+Date.now()});
-    // Aktif listeden çıkar, tumKatilimcilar'da durum güncelle
-    katilimcilar = katilimcilar.filter(k=>k.id!==id);
-    tumKatilimcilar = tumKatilimcilar.map(k=>k.id===id?{...k,durum:'engellendi'}:k);
+    katilimcilar = katilimcilar.filter(x=>x.id!==id);
+    tumKatilimcilar = tumKatilimcilar.map(x=>x.id===id?{...x,durum:'engellendi'}:x);
     renderAll();
     showToast('🚫 '+isim+' engellendi');
   } catch(e) { showToast('❌ '+e.message); }
