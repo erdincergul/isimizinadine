@@ -282,13 +282,7 @@ input::placeholder,textarea::placeholder{color:var(--mut)}
 
   <!-- BÜTÇE -->
   <div id="p-butce" class="panel">
-    <div class="card">
-      <div class="ctitle">🎯 Seyahat Bütçesi</div>
-      <p style="font-size:12px;color:var(--mut);margin-bottom:14px">Her kategori için bütçe belirleyin. Harcamalar otomatik düşülür.</p>
-      <div id="butceInputs"></div>
-      <button class="btn-primary" onclick="saveButce()">💾 Bütçeyi Kaydet</button>
-    </div>
-    <div class="slabel">📊 Bütçe Durumu</div>
+    <div class="slabel">📊 Bütçe Durumu <span style="font-size:10px;color:var(--mut);font-weight:400;text-transform:none;letter-spacing:0">(Limitleri Ayarlar'dan girin)</span></div>
     <div id="butceDurum"></div>
   </div>
 
@@ -803,6 +797,12 @@ function renderSummary() {
     </div>`;
   }).join('')||`<div class="empty" style="padding:14px;color:var(--grn)">✅ Herkes dengede!</div>`;
   document.getElementById('personDetailSection').innerHTML='';
+}
+
+function toggleButceAcc(id) {
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.style.display = el.style.display==='none' ? 'block' : 'none';
 }
 
 function togglePersonDetail(i) {
@@ -1558,7 +1558,7 @@ function renderButceDurum() {
     const hB = ortakMasraf.filter(e=>b.cats.length?b.cats.some(c=>e.cat.includes(c.split(' ')[1]||c)):!BUTCE_KATEGORILER.slice(0,-1).some(ok=>ok.cats.some(c=>e.cat.includes(c.split(' ')[1]||c)))).reduce((s,e)=>s+e.amount,0);
     return hB - hA;
   });
-  html += sirali.map(k => {
+  html += sirali.map((k,ki) => {
     const limit = butce[k.key] || 0;
     // O kategoriye ait masraflar
     const harcama = ortakMasraf
@@ -1569,7 +1569,8 @@ function renderButceDurum() {
     const renk = pct>=90?'var(--red)':pct>=70?'#e07820':'var(--grn)';
     const barColor = limit===0?'var(--bd)':renk;
 
-    return `<div style="background:var(--sf);border:1px solid var(--bd);border-radius:12px;padding:14px;margin-bottom:8px">
+    const accId = 'bacc_'+ki;
+    return `<div style="background:var(--sf);border:1px solid var(--bd);border-radius:12px;padding:14px;margin-bottom:8px;cursor:pointer" onclick="toggleButceAcc('${accId}')">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
         <div style="font-size:13px;font-weight:700">${k.label}</div>
         <div style="text-align:right">
@@ -2209,7 +2210,7 @@ async function openAcilModal() {
 // ━━━━━━━━━━━━━━━━━━━━━━━━
 async function loadAcilKisiler() {
   try {
-    const rows = await sbGet('acil_kisiler',`trip_id=eq.${mySession.tripId}&katilimci_id=eq.${mySession.katilimciId}&order=created_at.asc`);
+    const rows = await sbGet('acil_kisiler',`trip_id=eq.${mySession.tripId}&order=created_at.asc`);
     const list = document.getElementById('acilKisilerList');
     if(!list) return;
     list.innerHTML = rows.map(k=>`
