@@ -228,6 +228,7 @@ input::placeholder,textarea::placeholder{color:var(--mut)}
   <button class="tab w5" onclick="goTab('galeri',this)">📷 Galeri</button>
   <button class="tab w5" onclick="goTab('yerler',this)">📍 Yerler</button>
   <button class="tab w5" onclick="goTab('butce',this)">🎯 Bütçe</button>
+  <button class="tab w5" onclick="goTab('oyun',this)">🧠 Oyun</button>
 </div>
 
 <div class="main">
@@ -378,6 +379,11 @@ input::placeholder,textarea::placeholder{color:var(--mut)}
       <div style="display:flex;gap:8px;margin-bottom:4px;flex-wrap:wrap" id="yerFilterRow"></div>
     </div>
     <div id="yerlerList"></div>
+  </div>
+
+  <!-- OYUN -->
+  <div id="p-oyun" class="panel">
+    <div id="oyunEkran"></div>
   </div>
 
   <!-- AYARLAR -->
@@ -2324,6 +2330,253 @@ async function saveButceFromAyarlar() {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━
+// BİLGİ YARIŞMASI OYUNU
+// ━━━━━━━━━━━━━━━━━━━━━━━━
+const SORULAR = [
+  {soru:"Türkiye'nin başkenti neresidir?",secenekler:["İstanbul","Ankara","İzmir","Bursa"],dogru:1},
+  {soru:"Karadeniz'in en uzun kıyı şeridine sahip ilimiz hangisidir?",secenekler:["Trabzon","Samsun","Rize","Sinop"],dogru:1},
+  {soru:"Dünya'nın en büyük okyanusu hangisidir?",secenekler:["Atlantik","Hint","Arktik","Pasifik"],dogru:3},
+  {soru:"Türkiye'nin en yüksek dağı hangisidir?",secenekler:["Erciyes","Kaçkar","Ağrı","Palandöken"],dogru:2},
+  {soru:"Hangi şehrimizde Sümela Manastırı bulunur?",secenekler:["Rize","Artvin","Trabzon","Giresun"],dogru:2},
+  {soru:"Osmanlı İmparatorluğu hangi yılda kuruldu?",secenekler:["1071","1299","1453","1517"],dogru:1},
+  {soru:"Türkiye'nin nüfus bakımından en kalabalık şehri hangisidir?",secenekler:["Ankara","İzmir","İstanbul","Bursa"],dogru:2},
+  {soru:"Anadolu'nun ilk Türk devleti hangisidir?",secenekler:["Selçuklu","Osmanlı","Danişmend","Artuklu"],dogru:0},
+  {soru:"Türkiye'de en çok yetiştirilen tarım ürünü hangisidir?",secenekler:["Buğday","Mısır","Arpa","Pamuk"],dogru:0},
+  {soru:"Karadeniz Bölgesi'nin meşhur ürünü hangisidir?",secenekler:["Zeytin","Fındık","Üzüm","İncir"],dogru:1},
+  {soru:"Rize hangi ürünüyle meşhurdur?",secenekler:["Kahve","Fındık","Çay","Tütün"],dogru:2},
+  {soru:"Dünyanın en uzun nehri hangisidir?",secenekler:["Amazon","Nil","Mississippi","Yangtze"],dogru:1},
+  {soru:"Türkiye hangi kıtalarda yer alır?",secenekler:["Sadece Asya","Sadece Avrupa","Asya ve Avrupa","Afrika ve Asya"],dogru:2},
+  {soru:"Sinop'un özelliği nedir?",secenekler:["En güneyinde","En kuzeyinde","En doğusunda","En batısında"],dogru:1},
+  {soru:"Hangisi Karadeniz illerinden biri değildir?",secenekler:["Ordu","Trabzon","Erzurum","Samsun"],dogru:2},
+  {soru:"Türkiye'nin para birimi hangisidir?",secenekler:["Euro","Dolar","Lira","Pound"],dogru:2},
+  {soru:"En büyük gölümüz hangisidir?",secenekler:["Tuz Gölü","Van Gölü","Beyşehir","Eğirdir"],dogru:1},
+  {soru:"İstanbul Boğazı hangi iki denizi birleştirir?",secenekler:["Karadeniz-Ege","Karadeniz-Marmara","Marmara-Ege","Akdeniz-Ege"],dogru:1},
+  {soru:"Atatürk hangi yılda doğdu?",secenekler:["1878","1880","1881","1883"],dogru:2},
+  {soru:"Türkiye Cumhuriyeti hangi yılda kuruldu?",secenekler:["1919","1920","1922","1923"],dogru:3},
+  {soru:"Dünyanın en küçük kıtası hangisidir?",secenekler:["Avrupa","Avustralya","Antarktika","Güney Amerika"],dogru:1},
+  {soru:"Hangisi bir gezegen değildir?",secenekler:["Mars","Jüpiter","Ay","Satürn"],dogru:2},
+  {soru:"İnsan vücudunda kaç kemik vardır?",secenekler:["186","206","226","246"],dogru:1},
+  {soru:"Hangi ülke futbol dünya kupasını en çok kazanmıştır?",secenekler:["Almanya","Arjantin","Brezilya","İtalya"],dogru:2},
+  {soru:"Türkiye'nin yüzölçümü yaklaşık kaç km²'dir?",secenekler:["580.000","680.000","780.000","880.000"],dogru:2},
+  {soru:"Horma Kanyonu hangi ilimizde bulunur?",secenekler:["Sinop","Bartın","Kastamonu","Bolu"],dogru:2},
+  {soru:"Uzungöl hangi ilimizde bulunur?",secenekler:["Rize","Artvin","Giresun","Trabzon"],dogru:3},
+  {soru:"Ayder Yaylası hangi ilimizde bulunur?",secenekler:["Trabzon","Rize","Artvin","Giresun"],dogru:1},
+  {soru:"Karadeniz'de hangi balık türü bol miktarda bulunur?",secenekler:["Somon","Hamsi","Levrek","Çipura"],dogru:1},
+  {soru:"Bafra Pidesi hangi ilimize özgüdür?",secenekler:["Ordu","Trabzon","Samsun","Sinop"],dogru:2},
+];
+
+let oyunDurum = 'setup'; // setup, oynuyor, bitti
+let oyunKisiler = [];
+let oyunSoruIdx = 0;
+let oyunMevcutKisi = 0;
+let oyunPuanlar = {};
+let oyunSorular = [];
+let cevapVerildi = false;
+
+function initOyun() {
+  oyunDurum = 'setup';
+  renderOyun();
+}
+
+function renderOyun() {
+  const el = document.getElementById('oyunEkran');
+  if(!el) return;
+
+  if(oyunDurum === 'setup') {
+    el.innerHTML = `
+      <div class="card">
+        <div class="ctitle">🧠 Bilgi Yarışması</div>
+        <p style="font-size:13px;color:var(--mut);margin-bottom:16px">Oyuncuları ekleyin ve yarışmayı başlatın!</p>
+        <div id="oyuncuListesi" style="margin-bottom:12px"></div>
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+          <input type="text" id="oyuncuIsim" placeholder="Oyuncu adı" style="flex:1" onkeydown="if(event.key==='Enter')oyuncuEkle()">
+          <button onclick="oyuncuEkle()" style="background:var(--acc);border:none;color:#fff;padding:11px 16px;border-radius:10px;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer">+</button>
+        </div>
+        <div style="margin-bottom:12px">
+          <div style="font-size:11px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Soru Sayısı</div>
+          <div style="display:flex;gap:8px">
+            ${[5,10,15,20].map(n=>`<button onclick="setSoruSayisi(${n})" id="ss${n}" style="flex:1;padding:9px;border:1px solid var(--bd);border-radius:8px;background:var(--sf2);font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer;color:var(--mut)">${n}</button>`).join('')}
+          </div>
+        </div>
+        <button onclick="oyunuBaslat()" class="btn-primary" id="baslatBtn" disabled style="opacity:.4">🚀 Başlat</button>
+      </div>`;
+    oyunKisiler = [];
+    setSoruSayisi(10);
+    renderOyuncular();
+  }
+
+  else if(oyunDurum === 'oynuyor') {
+    const soru = oyunSorular[oyunSoruIdx];
+    const kisi = oyunKisiler[oyunMevcutKisi];
+    const toplamSoru = oyunSorular.length;
+    const pct = Math.round((oyunSoruIdx/toplamSoru)*100);
+
+    el.innerHTML = `
+      <div class="card" style="margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div style="font-size:11px;color:var(--mut)">Soru ${oyunSoruIdx+1}/${toplamSoru}</div>
+          <div style="font-size:12px;font-weight:700;color:var(--acc)">${kisi} <span style="color:var(--mut);font-weight:400">oynuyor</span></div>
+        </div>
+        <div style="background:var(--sf2);border-radius:20px;height:6px;overflow:hidden;margin-bottom:16px">
+          <div style="height:100%;border-radius:20px;background:var(--acc);width:${pct}%;transition:width .3s"></div>
+        </div>
+        <div style="font-size:16px;font-weight:700;line-height:1.5;margin-bottom:20px;min-height:60px">${soru.soru}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px" id="secenekler">
+          ${soru.secenekler.map((s,i)=>`
+            <button onclick="cevapVer(${i})" id="sec${i}"
+              style="padding:14px 10px;border:2px solid var(--bd);border-radius:12px;background:var(--sf2);font-family:'Syne',sans-serif;font-size:13px;font-weight:600;cursor:pointer;color:var(--txt);text-align:left;transition:all .2s;line-height:1.4">
+              <span style="font-family:'DM Mono',monospace;color:var(--mut);margin-right:6px">${['A','B','C','D'][i]}</span>${s}
+            </button>`).join('')}
+        </div>
+        <div id="cevapMesaj" style="display:none;text-align:center;padding:14px;border-radius:12px;margin-top:12px;font-size:15px;font-weight:700"></div>
+        <button onclick="sonrakiSoru()" id="sonrakiBtn" style="display:none;width:100%;margin-top:12px;padding:13px;background:var(--acc);color:#fff;border:none;border-radius:12px;font-family:'Syne',sans-serif;font-size:14px;font-weight:800;cursor:pointer">
+          ${oyunSoruIdx+1<toplamSoru?'Sonraki →':'Sonuçlar →'}
+        </button>
+      </div>
+      <div class="card">
+        <div class="ctitle">📊 Anlık Skor</div>
+        ${oyunKisiler.map(k=>`
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--bd)">
+            <div style="font-size:13px;font-weight:${k===kisi?'800':'600'};color:${k===kisi?'var(--acc)':'var(--txt)'}">${k===kisi?'▶ ':''} ${k}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--acc)">${oyunPuanlar[k]||0} <span style="font-size:10px;color:var(--mut)">puan</span></div>
+          </div>`).join('')}
+      </div>`;
+    cevapVerildi = false;
+  }
+
+  else if(oyunDurum === 'bitti') {
+    const sirali = [...oyunKisiler].sort((a,b)=>(oyunPuanlar[b]||0)-(oyunPuanlar[a]||0));
+    const madalyalar = ['🥇','🥈','🥉'];
+    el.innerHTML = `
+      <div class="card" style="text-align:center;margin-bottom:12px">
+        <div style="font-size:48px;margin-bottom:8px">🏆</div>
+        <div style="font-size:22px;font-weight:800;color:var(--acc);margin-bottom:4px">Oyun Bitti!</div>
+        <div style="font-size:13px;color:var(--mut)">${oyunSorular.length} soru tamamlandı</div>
+      </div>
+      <div class="card">
+        <div class="ctitle">🏅 Sıralama</div>
+        ${sirali.map((k,i)=>`
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--bd)">
+            <div style="font-size:28px">${madalyalar[i]||'🎖️'}</div>
+            <div style="flex:1">
+              <div style="font-size:15px;font-weight:700">${k}</div>
+              <div style="font-size:11px;color:var(--mut)">${oyunPuanlar[k]||0} doğru / ${oyunSorular.length} soru</div>
+            </div>
+            <div style="font-family:'DM Mono',monospace;font-size:22px;color:var(--acc);font-weight:700">${oyunPuanlar[k]||0}</div>
+          </div>`).join('')}
+      </div>
+      <button onclick="initOyun()" class="btn-primary" style="margin-top:8px">🔄 Yeni Oyun</button>`;
+  }
+}
+
+let secilenSoruSayisi = 10;
+function setSoruSayisi(n) {
+  secilenSoruSayisi = n;
+  [5,10,15,20].forEach(x=>{
+    const btn = document.getElementById('ss'+x);
+    if(!btn) return;
+    btn.style.background = x===n?'#b07d2a18':'var(--sf2)';
+    btn.style.borderColor = x===n?'var(--acc)':'var(--bd)';
+    btn.style.color = x===n?'var(--acc)':'var(--mut)';
+  });
+}
+
+function renderOyuncular() {
+  const el = document.getElementById('oyuncuListesi');
+  if(!el) return;
+  el.innerHTML = oyunKisiler.map((k,i)=>`
+    <div style="display:flex;align-items:center;gap:8px;background:var(--sf2);border-radius:10px;padding:9px 12px;margin-bottom:6px">
+      <div style="width:28px;height:28px;border-radius:50%;background:${['#b07d2a','#b8402a','#2d7a4f','#5b6abf','#8b4ab8','#2a8ab8'][i%6]};color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">${k.charAt(0).toUpperCase()}</div>
+      <div style="flex:1;font-size:13px;font-weight:700">${k}</div>
+      <button onclick="oyuncuCikar(${i})" style="background:none;border:none;color:var(--mut);cursor:pointer;font-size:14px">✕</button>
+    </div>`).join('') || '<div style="font-size:12px;color:var(--mut);text-align:center;padding:8px">Oyuncu eklenmedi.</div>';
+
+  const btn = document.getElementById('baslatBtn');
+  if(btn) { btn.disabled = oyunKisiler.length<1; btn.style.opacity = oyunKisiler.length<1?'.4':'1'; }
+}
+
+function oyuncuEkle() {
+  const inp = document.getElementById('oyuncuIsim');
+  const isim = inp.value.trim();
+  if(!isim || oyunKisiler.includes(isim)) return;
+  oyunKisiler.push(isim);
+  inp.value = '';
+  renderOyuncular();
+}
+
+function oyuncuCikar(i) {
+  oyunKisiler.splice(i,1);
+  renderOyuncular();
+}
+
+function oyunuBaslat() {
+  if(!oyunKisiler.length) return;
+  // Soruları karıştır ve seç
+  oyunSorular = [...SORULAR].sort(()=>Math.random()-.5).slice(0, secilenSoruSayisi);
+  oyunSoruIdx = 0;
+  oyunMevcutKisi = 0;
+  oyunPuanlar = {};
+  oyunKisiler.forEach(k=>oyunPuanlar[k]=0);
+  oyunDurum = 'oynuyor';
+  renderOyun();
+}
+
+function cevapVer(idx) {
+  if(cevapVerildi) return;
+  cevapVerildi = true;
+  const soru = oyunSorular[oyunSoruIdx];
+  const dogru = soru.dogru;
+  const kisi = oyunKisiler[oyunMevcutKisi];
+
+  // Butonları renklendir
+  for(let i=0;i<4;i++){
+    const btn = document.getElementById('sec'+i);
+    if(!btn) continue;
+    btn.style.cursor = 'default';
+    if(i===dogru) {
+      btn.style.background='#2d7a4f20';
+      btn.style.borderColor='var(--grn)';
+      btn.style.color='var(--grn)';
+    } else if(i===idx && idx!==dogru) {
+      btn.style.background='#b8402a20';
+      btn.style.borderColor='var(--red)';
+      btn.style.color='var(--red)';
+    } else {
+      btn.style.opacity='.4';
+    }
+  }
+
+  // Mesaj
+  const mesaj = document.getElementById('cevapMesaj');
+  if(idx===dogru) {
+    oyunPuanlar[kisi]++;
+    mesaj.style.display='block';
+    mesaj.style.background='#2d7a4f18';
+    mesaj.style.color='var(--grn)';
+    mesaj.textContent='✅ Doğru! +1 puan';
+  } else {
+    mesaj.style.display='block';
+    mesaj.style.background='#b8402a18';
+    mesaj.style.color='var(--red)';
+    mesaj.textContent='❌ Yanlış! Doğru: '+soru.secenekler[dogru];
+  }
+
+  document.getElementById('sonrakiBtn').style.display='block';
+}
+
+function sonrakiSoru() {
+  // Sıradaki kişiye geç
+  oyunMevcutKisi = (oyunMevcutKisi+1) % oyunKisiler.length;
+  // Herkese bir soru sorulduysa sonraki soruya geç
+  if(oyunMevcutKisi===0) oyunSoruIdx++;
+
+  if(oyunSoruIdx >= oyunSorular.length) {
+    oyunDurum = 'bitti';
+  }
+  renderOyun();
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━
 // UTILS
 // ━━━━━━━━━━━━━━━━━━━━━━━━
 function goTabByName(name) {
@@ -2333,6 +2586,7 @@ function goTabByName(name) {
   if(panel) panel.classList.add('active');
   if(name==='ayarlar') renderSettings();
   if(name==='butce') renderButce();
+  if(name==='oyun') initOyun();
   if(name==='yerler') renderYerler();
 }
 
@@ -2343,6 +2597,7 @@ function goTab(name,btn){
   btn.classList.add('active');
   if(name==='ozet') renderSummary();
   if(name==='butce') renderButce();
+  if(name==='oyun') initOyun();
   if(name==='guzergah') renderPlaces();
   if(name==='notlar') renderNotes();
   if(name==='ayarlar') renderSettings();
