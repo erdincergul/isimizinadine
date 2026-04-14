@@ -582,20 +582,25 @@ function renderHeader() {
 
 function renderWho() {
   const row = document.getElementById('whoRow');
-  if(!katilimcilar.length) { row.innerHTML='<div style="font-size:12px;color:var(--mut)">Katılımcı yükleniyor...</div>'; return; }
-  // whoIdx geçerliliğini kontrol et
-  if(whoIdx < 0 || whoIdx >= katilimcilar.length) {
-    whoIdx = katilimcilar.findIndex(k=>k.id===mySession?.katilimciId);
+  const aktif = katilimcilar.filter(k=>k.durum!=='engellendi');
+  if(!aktif.length) { row.innerHTML='<div style="font-size:12px;color:var(--mut)">Katılımcı yükleniyor...</div>'; return; }
+  if(whoIdx < 0 || whoIdx >= aktif.length) {
+    whoIdx = aktif.findIndex(k=>k.id===mySession?.katilimciId);
     if(whoIdx < 0) whoIdx = 0;
   }
-  row.innerHTML = katilimcilar.map((k,i)=>{
+  row.innerHTML = aktif.map((k,i)=>{
     const color = getColor(i);
-    const active = i === whoIdx;
+    const active = katilimcilar.filter(k=>k.durum!=='engellendi')[whoIdx]?.id === k.id;
     const isMe = k.id === mySession?.katilimciId;
-    return `<button class="kbtn${active?' active':''}" style="${active?`border-color:${color};background:${getBg(i)};color:${color}`:''}" onclick="pickWho(${i})">${getInitial(k.isim)} ${k.isim.split(' ')[0]}${isMe?' ✓':''}</button>`;
+    return `<button class="kbtn${active?' active':''}" style="${active?`border-color:${color};background:${getBg(i)};color:${color}`:''}" onclick="pickWhoById(${k.id})">${getInitial(k.isim)} ${k.isim.split(' ')[0]}${isMe?' ✓':''}</button>`;
   }).join('');
 }
 function pickWho(i){whoIdx=i;renderWho();}
+function pickWhoById(id){
+  const aktif = katilimcilar.filter(k=>k.durum!=='engellendi');
+  whoIdx = aktif.findIndex(k=>k.id===id);
+  renderWho();
+}
 
 function renderExpList() {
   const el = document.getElementById('expList');
@@ -624,8 +629,9 @@ function renderExpList() {
 }
 
 function renderSummary() {
+  const aktifK = katilimcilar.filter(k=>k.durum!=='engellendi');
   const ortakMasraf = masraflar.filter(e=>!e.sahsi);
-  const n = katilimcilar.length || 1;
+  const n = aktifK.length || 1;
   const total = ortakMasraf.reduce((s,e)=>s+e.amount,0);
   const per = total/n;
 
@@ -633,9 +639,9 @@ function renderSummary() {
   document.getElementById('sumPer').textContent = '₺'+fmt(per)+' ('+n+' kişi)';
 
   // Her kişinin ödediği (ortak)
-  const paid = katilimcilar.map(k=>ortakMasraf.filter(e=>e.katilimci_id===k.id).reduce((s,e)=>s+e.amount,0));
+  const paid = aktifK.map(k=>ortakMasraf.filter(e=>e.katilimci_id===k.id).reduce((s,e)=>s+e.amount,0));
 
-  document.getElementById('personRows').innerHTML = katilimcilar.map((k,i)=>{
+  document.getElementById('personRows').innerHTML = aktifK.map((k,i)=>{
     const bal=paid[i]-per;
     const cc=bal>0.009?'chip-pos':bal<-0.009?'chip-neg':'chip-zero';
     const ct=bal>0.009?`+₺${fmt(bal)} alacaklı`:bal<-0.009?`-₺${fmt(Math.abs(bal))} borçlu`:'dengede';
@@ -660,7 +666,7 @@ function renderSummary() {
   if(!total){sec.innerHTML=`<div class="empty" style="padding:14px"><p>Masraf eklenince görünür.</p></div>`;
     document.getElementById('personDetailSection').innerHTML='';return;}
 
-  const balances = katilimcilar.map((k,i)=>({i,k,b:paid[i]-per}));
+  const balances = aktifK.map((k,i)=>({i,k,b:paid[i]-per}));
   const creditors = balances.filter(x=>x.b>0.009).sort((a,b)=>b.b-a.b);
   const debtors   = balances.filter(x=>x.b<-0.009).sort((a,b)=>a.b-b.b);
   const payments  = [];
@@ -1548,7 +1554,7 @@ setInterval(async()=>{
       renderAll(); showToast('✅ Onaylandınız! Hoş geldiniz!');
       return;
     }
-    const changed = mList.length!==masraflar.length || nList.length!==notes.length || kList.length!==katilimcilar.length;
+    const changed = mList.length!==masraflar.length || nList.length!==notes.length || kList.filter(k=>k.durum!=='engellendi').length!==katilimcilar.filter(k=>k.durum!=='engellendi').length;
     if(changed){
       // Yeni masraf kontrolü — kim ne ekledi?
       if(mList.length > masraflar.length) {
