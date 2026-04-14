@@ -815,7 +815,7 @@ function togglePersonDetail(i) {
 // MASRAF ACTIONS
 // ━━━━━━━━━━━━━━━━━━━━━━━━
 async function addExpense() {
-  const aciklama = document.getElementById('fDesc').value.trim();
+  let aciklama = document.getElementById('fDesc').value.trim();
   const amount   = parseFloat(document.getElementById('fAmt').value);
   const cat      = document.getElementById('fCat').value;
   if(!amount||amount<=0){showToast('⚠️ Tutar girin!');return;}
@@ -937,7 +937,8 @@ async function saveEditExp(id) {
   const amount = parseFloat(document.getElementById('editAmt').value);
   const cat = document.getElementById('editCat').value;
   const katilimci_id = parseInt(document.getElementById('editWho').value);
-  if(!aciklama||!amount||amount<=0) { showToast('⚠️ Açıklama ve tutar girin!'); return; }
+  if(!amount||amount<=0) { showToast('⚠️ Tutar girin!'); return; }
+  if(!aciklama) aciklama = cat;
   try {
     await sbPatch('masraflar', `id=eq.${id}`, {aciklama, amount, cat, katilimci_id});
     const exp = masraflar.find(e=>e.id===id);
