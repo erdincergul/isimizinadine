@@ -487,7 +487,7 @@ async function joinTrip() {
       rol = byEmail[0].rol||'uye';
       await sbPatch('katilimcilar',`id=eq.${katilimciId}`,{session_id:sessionId, isim:name});
     } else {
-      const rows = await sbPost('katilimcilar',{trip_id:trip.id, isim:name, email, session_id:sessionId, iban:'', rol:'uye'});
+      const rows = await sbPost('katilimcilar',{trip_id:trip.id, isim:name, email, session_id:sessionId, iban:'', rol:'uye', durum:'beklemede'});
       katilimciId = rows[0].id;
     }
     mySession = {name, email, sessionId, tripId:trip.id, katilimciId, iban, rol};
@@ -519,12 +519,24 @@ async function loadAll() {
     masraflar = mList;
     places = pList;
     notes = nList;
-    // whoIdx = kendi indexi
+    // Durum kontrolü
+    const myK2 = katilimcilar.find(k=>k.id===mySession.katilimciId);
+    if(!myK2 || myK2.durum === 'engellendi') {
+      localStorage.removeItem('mySession');
+      document.getElementById('app').style.display='none';
+      showBannedScreen();
+      return;
+    }
+    if(myK2.durum === 'beklemede') {
+      mySession.rol = myK2.rol;
+      localStorage.setItem('mySession', JSON.stringify(mySession));
+      showWaitingScreen();
+      return;
+    }
+    mySession.rol = myK2.rol;
+    localStorage.setItem('mySession', JSON.stringify(mySession));
     whoIdx = katilimcilar.findIndex(k=>k.id===mySession.katilimciId);
     if(whoIdx<0) whoIdx=0;
-    // Rol bilgisini güncelle
-    const myK2 = katilimcilar.find(k=>k.id===mySession.katilimciId);
-    if(myK2) { mySession.rol=myK2.rol; localStorage.setItem('mySession',JSON.stringify(mySession)); }
     sync('ok','Bağlandı ✓');
     renderAll();
   } catch(e){ sync('err','Hata: '+e.message); }
@@ -1068,19 +1080,44 @@ function renderSettings(){
   const myK=katilimcilar.find(k=>k.id===mySession?.katilimciId);
   document.getElementById('myIban').value=myK?.iban||'';
   const isAdmin = mySession?.rol==='admin';
-  document.getElementById('katilimciList').innerHTML=katilimcilar.map((k,i)=>{
+  const bekleyenler = katilimcilar.filter(k=>k.durum==='beklemede');
+  const aktifler = katilimcilar.filter(k=>k.durum!=='beklemede');
+
+  let listHTML = '';
+
+  // Bekleyenler - admin için önce göster
+  if(isAdmin && bekleyenler.length) {
+    listHTML += `<div style="background:#b07d2a12;border:1px solid #b07d2a30;border-radius:10px;padding:10px 12px;margin-bottom:10px">
+      <div style="font-size:11px;font-weight:700;color:var(--acc);margin-bottom:8px">⏳ ONAY BEKLEYENLer (${bekleyenler.length})</div>
+      ${bekleyenler.map(k=>`
+        <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #b07d2a20">
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:700">${k.isim}</div>
+            <div style="font-size:10px;color:var(--mut)">${k.email||''}</div>
+          </div>
+          <button onclick="approveKatilimci(${k.id},'${k.isim}')" style="background:#2d7a4f18;border:1px solid #2d7a4f40;color:#2d7a4f;padding:5px 10px;border-radius:8px;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;cursor:pointer">✅ Onayla</button>
+          <button onclick="removeKatilimci(${k.id},'${k.isim}')" style="background:#b8402a18;border:1px solid #b8402a40;color:var(--red);padding:5px 10px;border-radius:8px;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;cursor:pointer">🚫 Reddet</button>
+        </div>`).join('')}
+    </div>`;
+  }
+
+  listHTML += aktifler.map((k,i)=>{
     const myCnt=masraflar.filter(e=>e.katilimci_id===k.id).length;
     const isMe = k.id===mySession?.katilimciId;
-    return `<div class="katilimci-item">
+    const engelli = k.durum==='engellendi';
+    return `<div class="katilimci-item" style="${engelli?'opacity:0.5':''}">
       <div class="k-avatar" style="background:${getColor(i)}">${getInitial(k.isim)}</div>
       <div style="flex:1">
-        <div style="font-size:13px;font-weight:700">${k.isim} ${k.rol==='admin'?'👑':''}</div>
+        <div style="font-size:13px;font-weight:700">${k.isim} ${k.rol==='admin'?'👑':''} ${engelli?'🚫':''}</div>
         <div style="font-size:10px;color:var(--mut);font-family:'DM Mono',monospace">${k.email||''} · ${myCnt} masraf${k.iban?' · IBAN ✓':''}</div>
       </div>
       ${isMe?'<span style="font-size:11px;color:var(--grn);font-weight:700">Ben</span>':''}
-      ${isAdmin&&!isMe?`<button onclick="removeKatilimci(${k.id},'${k.isim}')" style="background:none;border:1px solid #b8402a35;color:var(--red);padding:4px 8px;border-radius:8px;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;cursor:pointer;margin-left:4px">Çıkar</button>`:''}
+      ${isAdmin&&!isMe&&!engelli?`<button onclick="removeKatilimci(${k.id},'${k.isim}')" style="background:none;border:1px solid #b8402a35;color:var(--red);padding:4px 8px;border-radius:8px;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;cursor:pointer">🚫 Engelle</button>`:''}
+      ${isAdmin&&!isMe&&engelli?`<button onclick="approveKatilimci(${k.id},'${k.isim}')" style="background:none;border:1px solid #2d7a4f40;color:#2d7a4f;padding:4px 8px;border-radius:8px;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;cursor:pointer">✅ Aktif Et</button>`:''}
     </div>`;
   }).join('');
+
+  document.getElementById('katilimciList').innerHTML = listHTML;
 }
 
 async function removeKatilimci(id, isim) {
@@ -1470,6 +1507,15 @@ setInterval(async()=>{
       sbGet('notlar',`trip_id=eq.${mySession.tripId}&order=created_at.asc`),
       sbGet('katilimcilar',`trip_id=eq.${mySession.tripId}&order=created_at.asc`)
     ]);
+    // Onay durumu kontrolü
+    const myStatus = kList.find(k=>k.id===mySession?.katilimciId);
+    if(myStatus?.durum==='onaylandi' && document.getElementById('waitingScreen')?.style.display==='flex') {
+      document.getElementById('waitingScreen').style.display='none';
+      document.getElementById('app').style.display='block';
+      katilimcilar=kList; masraflar=mList; notes=nList;
+      renderAll(); showToast('✅ Onaylandınız! Hoş geldiniz!');
+      return;
+    }
     const changed = mList.length!==masraflar.length || nList.length!==notes.length || kList.length!==katilimcilar.length;
     if(changed){
       masraflar=mList; notes=nList; katilimcilar=kList;
