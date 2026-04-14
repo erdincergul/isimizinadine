@@ -1,2 +1,2 @@
-# isimizin_adi_ne
+# yol açık yola çık
 SEYAHAT
