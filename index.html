@@ -522,8 +522,10 @@ async function loadAll() {
       sbGet('notlar',`trip_id=eq.${tid}&order=created_at.asc`)
     ]);
     currentTrip = trips[0];
-    // Engellenen kişileri filtrele (admin hariç göster)
-    katilimcilar = mySession?.rol==='admin' ? kList : kList.filter(k=>k.durum!=='engellendi');
+    // Tüm listeyi admin için sakla
+    tumKatilimcilar = kList;
+    // Aktif listede engelliler yok
+    katilimcilar = kList.filter(k=>k.durum!=='engellendi');
     masraflar = mList;
     places = pList;
     notes = nList;
@@ -1094,8 +1096,10 @@ function renderSettings(){
   const myK=katilimcilar.find(k=>k.id===mySession?.katilimciId);
   document.getElementById('myIban').value=myK?.iban||'';
   const isAdmin = mySession?.rol==='admin';
-  const bekleyenler = katilimcilar.filter(k=>k.durum==='beklemede');
-  const aktifler = katilimcilar.filter(k=>k.durum!=='beklemede');
+  // Admin tüm listeyi görür (engelliler dahil), diğerleri sadece aktifler
+  const kaynak = isAdmin ? tumKatilimcilar : katilimcilar;
+  const bekleyenler = kaynak.filter(k=>k.durum==='beklemede');
+  const aktifler = kaynak.filter(k=>k.durum!=='beklemede');
 
   let listHTML = '';
 
@@ -1138,8 +1142,9 @@ async function removeKatilimci(id, isim) {
   if(!confirm(`"${isim}" kişisini engellemek istediğinize emin misiniz?`)) return;
   try {
     await sbPatch('katilimcilar',`id=eq.${id}`,{durum:'engellendi', session_id:'blocked_'+Date.now()});
-    // Local state'den tamamen çıkar — sync gelince geri gelmesin
+    // Aktif listeden çıkar, tumKatilimcilar'da durum güncelle
     katilimcilar = katilimcilar.filter(k=>k.id!==id);
+    tumKatilimcilar = tumKatilimcilar.map(k=>k.id===id?{...k,durum:'engellendi'}:k);
     renderAll();
     showToast('🚫 '+isim+' engellendi');
   } catch(e) { showToast('❌ '+e.message); }
@@ -1244,6 +1249,7 @@ function toggleSahsi(){
 // ━━━━━━━━━━━━━━━━━━━━━━━━
 let mekanlar = [];
 let selectedStar = 0;
+let tumKatilimcilar = []; // admin için tüm liste (engelliler dahil)
 
 function setMekanStar(s) {
   selectedStar = s;
@@ -1582,8 +1588,8 @@ setInterval(async()=>{
         const yeni = kList.filter(k => !katilimcilar.find(e=>e.id===k.id));
         yeni.forEach(k => showPopup(`👋 ${k.isim} seyahate katıldı!`));
       }
-      masraflar=mList; notes=nList; 
-      // Engellenen kişileri local state'e dahil etme
+      masraflar=mList; notes=nList;
+      tumKatilimcilar = kList;
       katilimcilar = kList.filter(k=>k.durum!=='engellendi');
       const myIdx = katilimcilar.findIndex(k=>k.id===mySession.katilimciId);
       if(myIdx>=0) whoIdx=myIdx;
