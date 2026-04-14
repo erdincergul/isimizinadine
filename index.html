@@ -2349,7 +2349,7 @@ async function saveButceFromAyarlar() {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━
-// BİLGİ YARIŞMASI OYUNU
+// BİLGİ YARIŞMASI OYUNU (ÇOK CİHAZLI)
 // ━━━━━━━━━━━━━━━━━━━━━━━━
 const SORULAR = [
   {soru:"Türkiye'nin başkenti neresidir?",secenekler:["İstanbul","Ankara","İzmir","Bursa"],dogru:1},
@@ -2359,15 +2359,12 @@ const SORULAR = [
   {soru:"Hangi şehrimizde Sümela Manastırı bulunur?",secenekler:["Rize","Artvin","Trabzon","Giresun"],dogru:2},
   {soru:"Osmanlı İmparatorluğu hangi yılda kuruldu?",secenekler:["1071","1299","1453","1517"],dogru:1},
   {soru:"Türkiye'nin nüfus bakımından en kalabalık şehri hangisidir?",secenekler:["Ankara","İzmir","İstanbul","Bursa"],dogru:2},
-  {soru:"Anadolu'nun ilk Türk devleti hangisidir?",secenekler:["Selçuklu","Osmanlı","Danişmend","Artuklu"],dogru:0},
-  {soru:"Türkiye'de en çok yetiştirilen tarım ürünü hangisidir?",secenekler:["Buğday","Mısır","Arpa","Pamuk"],dogru:0},
   {soru:"Karadeniz Bölgesi'nin meşhur ürünü hangisidir?",secenekler:["Zeytin","Fındık","Üzüm","İncir"],dogru:1},
   {soru:"Rize hangi ürünüyle meşhurdur?",secenekler:["Kahve","Fındık","Çay","Tütün"],dogru:2},
   {soru:"Dünyanın en uzun nehri hangisidir?",secenekler:["Amazon","Nil","Mississippi","Yangtze"],dogru:1},
   {soru:"Türkiye hangi kıtalarda yer alır?",secenekler:["Sadece Asya","Sadece Avrupa","Asya ve Avrupa","Afrika ve Asya"],dogru:2},
   {soru:"Sinop'un özelliği nedir?",secenekler:["En güneyinde","En kuzeyinde","En doğusunda","En batısında"],dogru:1},
   {soru:"Hangisi Karadeniz illerinden biri değildir?",secenekler:["Ordu","Trabzon","Erzurum","Samsun"],dogru:2},
-  {soru:"Türkiye'nin para birimi hangisidir?",secenekler:["Euro","Dolar","Lira","Pound"],dogru:2},
   {soru:"En büyük gölümüz hangisidir?",secenekler:["Tuz Gölü","Van Gölü","Beyşehir","Eğirdir"],dogru:1},
   {soru:"İstanbul Boğazı hangi iki denizi birleştirir?",secenekler:["Karadeniz-Ege","Karadeniz-Marmara","Marmara-Ege","Akdeniz-Ege"],dogru:1},
   {soru:"Atatürk hangi yılda doğdu?",secenekler:["1878","1880","1881","1883"],dogru:2},
@@ -2376,98 +2373,168 @@ const SORULAR = [
   {soru:"Hangisi bir gezegen değildir?",secenekler:["Mars","Jüpiter","Ay","Satürn"],dogru:2},
   {soru:"İnsan vücudunda kaç kemik vardır?",secenekler:["186","206","226","246"],dogru:1},
   {soru:"Hangi ülke futbol dünya kupasını en çok kazanmıştır?",secenekler:["Almanya","Arjantin","Brezilya","İtalya"],dogru:2},
-  {soru:"Türkiye'nin yüzölçümü yaklaşık kaç km²'dir?",secenekler:["580.000","680.000","780.000","880.000"],dogru:2},
   {soru:"Horma Kanyonu hangi ilimizde bulunur?",secenekler:["Sinop","Bartın","Kastamonu","Bolu"],dogru:2},
   {soru:"Uzungöl hangi ilimizde bulunur?",secenekler:["Rize","Artvin","Giresun","Trabzon"],dogru:3},
   {soru:"Ayder Yaylası hangi ilimizde bulunur?",secenekler:["Trabzon","Rize","Artvin","Giresun"],dogru:1},
   {soru:"Karadeniz'de hangi balık türü bol miktarda bulunur?",secenekler:["Somon","Hamsi","Levrek","Çipura"],dogru:1},
   {soru:"Bafra Pidesi hangi ilimize özgüdür?",secenekler:["Ordu","Trabzon","Samsun","Sinop"],dogru:2},
+  {soru:"Türkiye'nin yüzölçümü yaklaşık kaç km2'dir?",secenekler:["580.000","680.000","780.000","880.000"],dogru:2},
+  {soru:"Dünyanın en büyük ülkesi hangisidir?",secenekler:["Kanada","Çin","ABD","Rusya"],dogru:3},
+  {soru:"Hangi element periyodik tabloda Au sembolüyle gösterilir?",secenekler:["Gümüş","Altın","Bakır","Demir"],dogru:1},
+  {soru:"Dünya'nın en yüksek dağı hangisidir?",secenekler:["K2","Kangchenjunga","Everest","Lhotse"],dogru:2},
 ];
 
-let oyunDurum = 'setup'; // setup, oynuyor, bitti
-let oyunKisiler = [];
-let oyunSoruIdx = 0;
-let oyunMevcutKisi = 0;
-let oyunPuanlar = {};
-let oyunSorular = [];
-let cevapVerildi = false;
+let oyunOturum = null;
+let oyunSyncInterval = null;
+let benimCevabim = null; // Bu turda verdim mi?
+let seciliOyuncular = new Set();
+let secilenSoruSayisi = 10;
 
 function initOyun() {
-  oyunDurum = 'setup';
-  oyunKisiler = []; // Seçimler sıfırla
+  seciliOyuncular = new Set();
   renderOyun();
 }
 
-function renderOyun() {
+async function renderOyun() {
   const el = document.getElementById('oyunEkran');
   if(!el) return;
 
-  if(oyunDurum === 'setup') {
+  // Aktif oturum var mı?
+  try {
+    const rows = await sbGet('oyun_oturumu', `trip_id=eq.${mySession.tripId}`);
+    oyunOturum = rows.length ? rows[0] : null;
+  } catch(e){ oyunOturum = null; }
+
+  const benimIsim = mySession.name;
+
+  if(!oyunOturum || oyunOturum.durum === 'bekleniyor') {
+    // SETUP EKRANI
+    const tumKatilimcilar = katilimcilar.filter(k=>k.durum==='onaylandi');
     el.innerHTML = `
       <div class="card">
         <div class="ctitle">🧠 Bilgi Yarışması</div>
-        <p style="font-size:13px;color:var(--mut);margin-bottom:12px">Oyuna katılacak kişileri seçin. Araç süren kişiyi seçmeyin!</p>
-        <div id="oyuncuListesi" style="margin-bottom:12px"></div>
+        <p style="font-size:13px;color:var(--mut);margin-bottom:12px">Oyuna katılacak kişileri seçin. Herkes kendi telefonundan cevaplar!</p>
         <div style="margin-bottom:12px">
+          ${tumKatilimcilar.map((k,i)=>{
+            const secili = seciliOyuncular.has(k.isim);
+            const color = ['#b07d2a','#b8402a','#2d7a4f','#5b6abf','#8b4ab8','#2a8ab8'][i%6];
+            return `<div onclick="toggleOyuncu('${k.isim.replace(/'/g,"\'")}')" 
+              style="display:flex;align-items:center;gap:10px;border-radius:10px;padding:10px 12px;margin-bottom:8px;cursor:pointer;border:2px solid ${secili?color:'var(--bd)'};background:${secili?color+'18':'var(--sf2)'};transition:all .2s">
+              <div style="width:28px;height:28px;border-radius:50%;background:${color};color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">${k.isim.charAt(0).toUpperCase()}</div>
+              <div style="flex:1;font-size:13px;font-weight:700;color:${secili?color:'var(--txt)'}">${k.isim}</div>
+              <div style="width:22px;height:22px;border-radius:50%;border:2px solid ${secili?color:'var(--bd)'};background:${secili?color:'transparent'};display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff">${secili?'✓':''}</div>
+            </div>`;
+          }).join('')}
+        </div>
+        <div style="margin-bottom:14px">
           <div style="font-size:11px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Soru Sayısı</div>
           <div style="display:flex;gap:8px">
-            ${[5,10,15,20].map(n=>`<button onclick="setSoruSayisi(${n})" id="ss${n}" style="flex:1;padding:9px;border:1px solid var(--bd);border-radius:8px;background:var(--sf2);font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer;color:var(--mut)">${n}</button>`).join('')}
+            ${[5,10,15,20].map(n=>`<button onclick="setSoruSayisi(${n})" id="ss${n}"
+              style="flex:1;padding:9px;border:1px solid var(--bd);border-radius:8px;background:var(--sf2);font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer;color:var(--mut)">${n}</button>`).join('')}
           </div>
         </div>
-        <button onclick="oyunuBaslat()" class="btn-primary" id="baslatBtn" disabled style="opacity:.4">🚀 Başlat</button>
+        <button onclick="oyunuBaslat()" id="baslatBtn" class="btn-primary" ${seciliOyuncular.size<1?'disabled style="opacity:.4"':''}>
+          🚀 ${seciliOyuncular.size>0?seciliOyuncular.size+' Kişiyle Başlat':'Başlat'}
+        </button>
       </div>`;
-    oyunKisiler = [];
-    setSoruSayisi(10);
-    renderOyuncular();
+    setSoruSayisi(secilenSoruSayisi);
+    if(oyunOturum?.durum==='bekleniyor') {
+      // Başka biri kurulum yapıyor, bekle
+      startOyunSync();
+    }
   }
 
-  else if(oyunDurum === 'oynuyor') {
-    const soru = oyunSorular[oyunSoruIdx];
-    const kisi = oyunKisiler[oyunMevcutKisi];
-    const toplamSoru = oyunSorular.length;
-    const pct = Math.round((oyunSoruIdx/toplamSoru)*100);
+  else if(oyunOturum.durum === 'oynuyor') {
+    const sorular = oyunOturum.sorular;
+    const soruIdx = oyunOturum.soru_idx;
+    const puanlar = oyunOturum.puanlar || {};
+    const oyuncular = oyunOturum.oyuncular || [];
+
+    if(soruIdx >= sorular.length) {
+      // Oyun bitti
+      await sbPatch2('oyun_oturumu', `trip_id=eq.${mySession.tripId}`, {durum:'bitti'});
+      renderOyun();
+      return;
+    }
+
+    const soru = SORULAR[sorular[soruIdx]];
+    const toplamSoru = sorular.length;
+    const pct = Math.round((soruIdx/toplamSoru)*100);
+
+    // Bu turda cevap verdim mi?
+    let cevaplar = [];
+    try {
+      cevaplar = await sbGet('oyun_cevaplar', `trip_id=eq.${mySession.tripId}&soru_idx=eq.${soruIdx}`);
+    } catch(e){}
+
+    const benimCevap = cevaplar.find(c=>c.oyuncu===benimIsim);
+    const tumOyuncularCevapladi = oyuncular.every(o=>cevaplar.find(c=>c.oyuncu===o));
 
     el.innerHTML = `
       <div class="card" style="margin-bottom:10px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <div style="font-size:11px;color:var(--mut)">Soru ${oyunSoruIdx+1}/${toplamSoru}</div>
-          <div style="font-size:12px;font-weight:700;color:var(--acc)">${kisi} <span style="color:var(--mut);font-weight:400">oynuyor</span></div>
+          <div style="font-size:11px;color:var(--mut)">Soru ${soruIdx+1}/${toplamSoru}</div>
+          <div style="font-size:11px;color:var(--mut)">${cevaplar.length}/${oyuncular.length} cevapladı</div>
         </div>
         <div style="background:var(--sf2);border-radius:20px;height:6px;overflow:hidden;margin-bottom:16px">
           <div style="height:100%;border-radius:20px;background:var(--acc);width:${pct}%;transition:width .3s"></div>
         </div>
-        <div style="font-size:16px;font-weight:700;line-height:1.5;margin-bottom:20px;min-height:60px">${soru.soru}</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px" id="secenekler">
-          ${soru.secenekler.map((s,i)=>`
-            <button onclick="cevapVer(${i})" id="sec${i}"
-              style="padding:14px 10px;border:2px solid var(--bd);border-radius:12px;background:var(--sf2);font-family:'Syne',sans-serif;font-size:13px;font-weight:600;cursor:pointer;color:var(--txt);text-align:left;transition:all .2s;line-height:1.4">
-              <span style="font-family:'DM Mono',monospace;color:var(--mut);margin-right:6px">${['A','B','C','D'][i]}</span>${s}
-            </button>`).join('')}
-        </div>
-        <div id="cevapMesaj" style="display:none;text-align:center;padding:14px;border-radius:12px;margin-top:12px;font-size:15px;font-weight:700"></div>
-        <button onclick="sonrakiSoru()" id="sonrakiBtn" style="display:none;width:100%;margin-top:12px;padding:13px;background:var(--acc);color:#fff;border:none;border-radius:12px;font-family:'Syne',sans-serif;font-size:14px;font-weight:800;cursor:pointer">
-          ${oyunSoruIdx+1<toplamSoru?'Sonraki →':'Sonuçlar →'}
-        </button>
+        <div style="font-size:16px;font-weight:700;line-height:1.5;margin-bottom:20px">${soru.soru}</div>
+        ${benimCevap
+          ? `<div style="background:${benimCevap.dogru?'#2d7a4f18':'#b8402a18'};border-radius:12px;padding:16px;text-align:center;margin-bottom:12px">
+              <div style="font-size:20px;margin-bottom:4px">${benimCevap.dogru?'✅':'❌'}</div>
+              <div style="font-size:14px;font-weight:700;color:${benimCevap.dogru?'var(--grn)':'var(--red)'}">${benimCevap.dogru?'Doğru!':'Yanlış!'}</div>
+              <div style="font-size:12px;color:var(--mut);margin-top:4px">Diğerleri cevaplıyor... (${cevaplar.length}/${oyuncular.length})</div>
+            </div>`
+          : `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px" id="secenekler">
+              ${soru.secenekler.map((s,i)=>`
+                <button onclick="cevapVer(${i})" 
+                  style="padding:14px 10px;border:2px solid var(--bd);border-radius:12px;background:var(--sf2);font-family:'Syne',sans-serif;font-size:13px;font-weight:600;cursor:pointer;color:var(--txt);text-align:left;line-height:1.4">
+                  <span style="font-family:'DM Mono',monospace;color:var(--mut);margin-right:6px">${['A','B','C','D'][i]}</span>${s}
+                </button>`).join('')}
+            </div>`
+        }
+        ${tumOyuncularCevapladi
+          ? `<div style="margin-top:12px">
+              <div style="font-size:12px;font-weight:700;color:var(--mut);margin-bottom:8px">Sonuçlar:</div>
+              ${oyuncular.map(o=>{
+                const c=cevaplar.find(x=>x.oyuncu===o);
+                return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--sf2);font-size:12px">
+                  <span>${c?.dogru?'✅':'❌'}</span>
+                  <span style="flex:1">${o}</span>
+                  <span style="font-family:'DM Mono',monospace;color:var(--acc)">${puanlar[o]||0} puan</span>
+                </div>`;
+              }).join('')}
+              ${oyunOturum.mevcut_kisi===benimIsim || oyunOturum.oyuncular[0]===benimIsim
+                ? `<button onclick="sonrakiSoru()" class="btn-primary" style="margin-top:12px">Sonraki →</button>`
+                : `<div style="text-align:center;font-size:12px;color:var(--mut);margin-top:10px">⏳ ${oyunOturum.oyuncular[0]} sonrakine geçiyor...</div>`
+              }
+            </div>`
+          : ''
+        }
       </div>
       <div class="card">
-        <div class="ctitle">📊 Anlık Skor</div>
-        ${oyunKisiler.map(k=>`
+        <div class="ctitle">📊 Skor</div>
+        ${oyuncular.map(o=>`
           <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--bd)">
-            <div style="font-size:13px;font-weight:${k===kisi?'800':'600'};color:${k===kisi?'var(--acc)':'var(--txt)'}">${k===kisi?'▶ ':''} ${k}</div>
-            <div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--acc)">${oyunPuanlar[k]||0} <span style="font-size:10px;color:var(--mut)">puan</span></div>
+            <div style="font-size:13px;font-weight:${o===benimIsim?'800':'600'};color:${o===benimIsim?'var(--acc)':'var(--txt)'}">${o===benimIsim?'▶ ':''} ${o}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--acc)">${puanlar[o]||0}</div>
           </div>`).join('')}
       </div>`;
-    cevapVerildi = false;
+    startOyunSync();
   }
 
-  else if(oyunDurum === 'bitti') {
-    const sirali = [...oyunKisiler].sort((a,b)=>(oyunPuanlar[b]||0)-(oyunPuanlar[a]||0));
+  else if(oyunOturum.durum === 'bitti') {
+    const puanlar = oyunOturum.puanlar || {};
+    const oyuncular = oyunOturum.oyuncular || [];
+    const sirali = [...oyuncular].sort((a,b)=>(puanlar[b]||0)-(puanlar[a]||0));
     const madalyalar = ['🥇','🥈','🥉'];
+    stopOyunSync();
     el.innerHTML = `
       <div class="card" style="text-align:center;margin-bottom:12px">
         <div style="font-size:48px;margin-bottom:8px">🏆</div>
         <div style="font-size:22px;font-weight:800;color:var(--acc);margin-bottom:4px">Oyun Bitti!</div>
-        <div style="font-size:13px;color:var(--mut)">${oyunSorular.length} soru tamamlandı</div>
+        <div style="font-size:13px;color:var(--mut)">${oyunOturum.sorular.length} soru tamamlandı</div>
       </div>
       <div class="card">
         <div class="ctitle">🏅 Sıralama</div>
@@ -2476,16 +2543,15 @@ function renderOyun() {
             <div style="font-size:28px">${madalyalar[i]||'🎖️'}</div>
             <div style="flex:1">
               <div style="font-size:15px;font-weight:700">${k}</div>
-              <div style="font-size:11px;color:var(--mut)">${oyunPuanlar[k]||0} doğru / ${oyunSorular.length} soru</div>
+              <div style="font-size:11px;color:var(--mut)">${puanlar[k]||0} doğru / ${oyunOturum.sorular.length} soru</div>
             </div>
-            <div style="font-family:'DM Mono',monospace;font-size:22px;color:var(--acc);font-weight:700">${oyunPuanlar[k]||0}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:22px;color:var(--acc);font-weight:700">${puanlar[k]||0}</div>
           </div>`).join('')}
       </div>
-      <button onclick="seciliOyuncular=new Set();initOyun()" class="btn-primary" style="margin-top:8px">🔄 Yeni Oyun</button>`;
+      <button onclick="oyunuSifirla()" class="btn-primary" style="margin-top:8px">🔄 Yeni Oyun</button>`;
   }
 }
 
-let secilenSoruSayisi = 10;
 function setSoruSayisi(n) {
   secilenSoruSayisi = n;
   [5,10,15,20].forEach(x=>{
@@ -2497,109 +2563,110 @@ function setSoruSayisi(n) {
   });
 }
 
-let seciliOyuncular = new Set();
-
-function renderOyuncular() {
-  const el = document.getElementById('oyuncuListesi');
-  if(!el) return;
-  const tumKatilimcilar = katilimcilar.filter(k=>k.durum==='onaylandi');
-  if(!tumKatilimcilar.length) {
-    el.innerHTML = '<div style="font-size:13px;color:var(--red);text-align:center;padding:12px;background:#b8402a10;border-radius:10px">⚠️ Seyahatte onaylı katılımcı yok.</div>';
-    const btn = document.getElementById('baslatBtn');
-    if(btn) { btn.disabled=true; btn.style.opacity='.4'; }
-    return;
-  }
-  el.innerHTML = tumKatilimcilar.map((k,i)=>{
-    const secili = seciliOyuncular.has(k.isim);
-    const color = ['#b07d2a','#b8402a','#2d7a4f','#5b6abf','#8b4ab8','#2a8ab8'][i%6];
-    return `<div onclick="toggleOyuncu('${k.isim.replace(/'/g,"\'")}','${color}')" 
-      style="display:flex;align-items:center;gap:10px;border-radius:10px;padding:10px 12px;margin-bottom:8px;cursor:pointer;border:2px solid ${secili?color:'var(--bd)'};background:${secili?color+'18':'var(--sf2)'};transition:all .2s">
-      <div style="width:28px;height:28px;border-radius:50%;background:${color};color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">${k.isim.charAt(0).toUpperCase()}</div>
-      <div style="flex:1;font-size:13px;font-weight:700;color:${secili?color:'var(--txt)'}">${k.isim}</div>
-      <div style="width:22px;height:22px;border-radius:50%;border:2px solid ${secili?color:'var(--bd)'};background:${secili?color:'transparent'};display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;flex-shrink:0">${secili?'✓':''}</div>
-    </div>`;
-  }).join('');
-
-  const btn = document.getElementById('baslatBtn');
-  const seciliSayi = seciliOyuncular.size;
-  if(btn) {
-    btn.disabled = seciliSayi < 1;
-    btn.style.opacity = seciliSayi < 1 ? '.4' : '1';
-    btn.textContent = seciliSayi>0 ? `🚀 ${seciliSayi} Kişiyle Başlat` : '🚀 Başlat';
-  }
-}
-
 function toggleOyuncu(isim) {
   if(seciliOyuncular.has(isim)) seciliOyuncular.delete(isim);
   else seciliOyuncular.add(isim);
-  renderOyuncular();
+  renderOyun();
 }
 
-function oyunuBaslat() {
+async function oyunuBaslat() {
   if(!seciliOyuncular.size) return;
-  oyunKisiler = [...seciliOyuncular];
-  oyunSorular = [...SORULAR].sort(()=>Math.random()-.5).slice(0, secilenSoruSayisi);
-  oyunSoruIdx = 0;
-  oyunMevcutKisi = 0;
-  oyunPuanlar = {};
-  oyunKisiler.forEach(k=>oyunPuanlar[k]=0);
-  oyunDurum = 'oynuyor';
-  renderOyun();
+  const oyuncular = [...seciliOyuncular];
+  const soruIdxler = [...SORULAR.keys()].sort(()=>Math.random()-.5).slice(0,secilenSoruSayisi);
+  const puanlar = {};
+  oyuncular.forEach(o=>puanlar[o]=0);
+
+  try {
+    const existing = await sbGet('oyun_oturumu',`trip_id=eq.${mySession.tripId}`);
+    const data = {
+      trip_id: mySession.tripId,
+      durum: 'oynuyor',
+      soru_idx: 0,
+      mevcut_kisi: oyuncular[0],
+      sorular: soruIdxler,
+      puanlar,
+      oyuncular,
+      updated_at: new Date().toISOString()
+    };
+    if(existing.length) await sbPatch2('oyun_oturumu',`trip_id=eq.${mySession.tripId}`,data);
+    else await sbPost('oyun_oturumu',data);
+
+    // Eski cevapları sil
+    await sbDelete('oyun_cevaplar',`trip_id=eq.${mySession.tripId}`);
+    renderOyun();
+  } catch(e){showToast('❌ '+e.message);}
 }
 
-function cevapVer(idx) {
-  if(cevapVerildi) return;
-  cevapVerildi = true;
-  const soru = oyunSorular[oyunSoruIdx];
-  const dogru = soru.dogru;
-  const kisi = oyunKisiler[oyunMevcutKisi];
+async function cevapVer(idx) {
+  const soruIdx = oyunOturum.soru_idx;
+  const soru = SORULAR[oyunOturum.sorular[soruIdx]];
+  const dogru = idx === soru.dogru;
+  const benimIsim = mySession.name;
 
-  // Butonları renklendir
-  for(let i=0;i<4;i++){
-    const btn = document.getElementById('sec'+i);
-    if(!btn) continue;
-    btn.style.cursor = 'default';
-    if(i===dogru) {
-      btn.style.background='#2d7a4f20';
-      btn.style.borderColor='var(--grn)';
-      btn.style.color='var(--grn)';
-    } else if(i===idx && idx!==dogru) {
-      btn.style.background='#b8402a20';
-      btn.style.borderColor='var(--red)';
-      btn.style.color='var(--red)';
-    } else {
-      btn.style.opacity='.4';
+  // Cevabı kaydet
+  try {
+    await sbPost('oyun_cevaplar',{
+      trip_id: mySession.tripId,
+      oyuncu: benimIsim,
+      soru_idx: soruIdx,
+      cevap: idx,
+      dogru
+    });
+    // Puanı güncelle
+    if(dogru) {
+      const puanlar = oyunOturum.puanlar || {};
+      puanlar[benimIsim] = (puanlar[benimIsim]||0) + 1;
+      await sbPatch2('oyun_oturumu',`trip_id=eq.${mySession.tripId}`,{puanlar, updated_at:new Date().toISOString()});
     }
-  }
-
-  // Mesaj
-  const mesaj = document.getElementById('cevapMesaj');
-  if(idx===dogru) {
-    oyunPuanlar[kisi]++;
-    mesaj.style.display='block';
-    mesaj.style.background='#2d7a4f18';
-    mesaj.style.color='var(--grn)';
-    mesaj.textContent='✅ Doğru! +1 puan';
-  } else {
-    mesaj.style.display='block';
-    mesaj.style.background='#b8402a18';
-    mesaj.style.color='var(--red)';
-    mesaj.textContent='❌ Yanlış! Doğru: '+soru.secenekler[dogru];
-  }
-
-  document.getElementById('sonrakiBtn').style.display='block';
+    renderOyun();
+  } catch(e){showToast('❌ '+e.message);}
 }
 
-function sonrakiSoru() {
-  // Sıradaki kişiye geç
-  oyunMevcutKisi = (oyunMevcutKisi+1) % oyunKisiler.length;
-  // Herkese bir soru sorulduysa sonraki soruya geç
-  if(oyunMevcutKisi===0) oyunSoruIdx++;
+async function sonrakiSoru() {
+  const yeniIdx = oyunOturum.soru_idx + 1;
+  const bitti = yeniIdx >= oyunOturum.sorular.length;
+  try {
+    await sbPatch2('oyun_oturumu',`trip_id=eq.${mySession.tripId}`,{
+      soru_idx: yeniIdx,
+      durum: bitti ? 'bitti' : 'oynuyor',
+      updated_at: new Date().toISOString()
+    });
+    renderOyun();
+  } catch(e){showToast('❌ '+e.message);}
+}
 
-  if(oyunSoruIdx >= oyunSorular.length) {
-    oyunDurum = 'bitti';
-  }
-  renderOyun();
+async function oyunuSifirla() {
+  try {
+    await sbPatch2('oyun_oturumu',`trip_id=eq.${mySession.tripId}`,{durum:'bekleniyor', updated_at:new Date().toISOString()});
+    await sbDelete('oyun_cevaplar',`trip_id=eq.${mySession.tripId}`);
+    seciliOyuncular = new Set();
+    stopOyunSync();
+    renderOyun();
+  } catch(e){}
+}
+
+async function sbPatch2(table, filter, body) {
+  const r = await fetch(`${SB_URL}/rest/v1/${table}?${filter}`,{method:'PATCH',headers:{...H,'Prefer':'return=minimal'},body:JSON.stringify(body)});
+  if(!r.ok) throw new Error(table+' PATCH '+r.status);
+}
+
+function startOyunSync() {
+  stopOyunSync();
+  oyunSyncInterval = setInterval(async()=>{
+    if(!document.getElementById('p-oyun')?.classList.contains('active')) { stopOyunSync(); return; }
+    try {
+      const rows = await sbGet('oyun_oturumu',`trip_id=eq.${mySession.tripId}`);
+      const yeni = rows[0];
+      if(yeni && JSON.stringify(yeni) !== JSON.stringify(oyunOturum)) {
+        oyunOturum = yeni;
+        renderOyun();
+      }
+    } catch(e){}
+  }, 2000);
+}
+
+function stopOyunSync() {
+  if(oyunSyncInterval) { clearInterval(oyunSyncInterval); oyunSyncInterval=null; }
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━
