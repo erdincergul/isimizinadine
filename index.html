@@ -7,6 +7,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
 :root{--bg:#f2ece0;--sf:#fffdf6;--sf2:#ede6d6;--bd:#d8cfba;--acc:#b07d2a;--red:#b8402a;--grn:#2d7a4f;--txt:#26200f;--mut:#8a7a5e;--r:14px}
 
@@ -157,6 +159,81 @@ input::placeholder,textarea::placeholder{color:var(--mut)}
 /* AYARLAR — KATILIMCIlar */
 .katilimci-item{display:flex;align-items:center;gap:10px;background:var(--sf2);border-radius:10px;padding:10px 14px;margin-bottom:8px}
 .k-avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;flex-shrink:0;color:#fffdf6}
+
+/* ROTA PLANLAYICI */
+#p-rota .rota-app{}
+
+
+
+.topbar{background:#fff;border-bottom:1px solid #e5e5e0;padding:.75rem 1.5rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;flex-wrap:wrap;gap:8px}
+.topbar h1{font-size:17px;font-weight:600}
+.topbar p{font-size:12px;color:#888;margin-top:1px}
+.topbar-btns{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.rota-app{max-width:960px;margin:0 auto;padding:1.25rem 1rem}
+.rota-panel{background:#fff;border:1px solid #e5e5e0;border-radius:12px;padding:1rem 1.25rem;margin-bottom:.85rem}
+.rota-tabs{display:flex;border-bottom:1px solid #e5e5e0;margin-bottom:1rem}
+.rota-tab{padding:9px 20px;font-size:13px;font-weight:500;cursor:pointer;border:none;background:none;color:#888;border-bottom:2px solid transparent;white-space:nowrap}
+.rota-tab.rota-active{color:#2563eb;border-bottom-color:#2563eb}
+.city-card{border:1px solid #e5e5e0;border-radius:10px;padding:.85rem;margin-bottom:.65rem;background:#fafaf8}
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
+.b-city{background:#ede9fe;color:#5b21b6}
+.b-hotel{background:#e0f2fe;color:#0369a1}
+.b-sight{background:#dcfce7;color:#166534}
+.b-dep{background:#fef3c7;color:#92400e}
+.b-district{background:#fce7f3;color:#9d174d}
+.btn{padding:7px 14px;border-radius:8px;font-size:13px;cursor:pointer;font-weight:500;border:1px solid #e0e0e0;background:#fff;color:#1a1a1a}
+.btn:hover{background:#f5f5f5}
+.btn-primary{background:#2563eb;border-color:#2563eb;color:#fff}
+.btn-primary:hover{background:#1d4ed8}
+.btn-sm{padding:5px 11px;font-size:12px}
+.btn-danger{border-color:#fca5a5;color:#dc2626}
+.btn-danger:hover{background:#fef2f2}
+.btn-green{background:#1d6f42;border-color:#1d6f42;color:#fff;font-weight:600}
+.btn-green:hover{background:#166234}
+.summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:.85rem}
+.sum-card{background:#f5f5f0;border-radius:10px;padding:.7rem 1rem}
+.sum-label{font-size:11px;color:#888;margin-bottom:2px}
+.sum-val{font-size:17px;font-weight:700;color:#1a1a1a}
+.rtable{width:100%;border-collapse:collapse;font-size:12px}
+.rtable th{text-align:left;padding:6px 10px;font-size:11px;font-weight:600;color:#888;border-bottom:1px solid #e5e5e0;white-space:nowrap}
+.rtable td{padding:7px 10px;border-bottom:1px solid #f0f0ee;color:#1a1a1a;vertical-align:top}
+.rtable tr:hover td{background:#fafaf8}
+.map-wrap{border-radius:12px;border:1px solid #e5e5e0;overflow:hidden;margin-bottom:1rem}
+#the-map{width:100%;height:450px}
+.map-legend{display:flex;flex-wrap:wrap;gap:12px;padding:.7rem 1rem;border-top:1px solid #e5e5e0;background:#fff}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:12px;color:#666}
+.leg-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+/* autocomplete */
+.ac-box{position:relative}
+.ac-drop{display:none;position:absolute;top:calc(100% + 3px);left:0;right:0;background:#fff;border:1px solid #e0e0e0;border-radius:8px;max-height:210px;overflow-y:auto;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,.12)}
+.ac-item{padding:8px 11px;font-size:13px;cursor:pointer;color:#1a1a1a;border-bottom:1px solid #f5f5f0}
+.ac-item:last-child{border-bottom:none}
+.ac-item:hover,.ac-item.sel{background:#f0f4ff}
+.ac-sub{font-size:11px;color:#888;margin-left:4px}
+/* form */
+.frow{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}
+.fg{display:flex;flex-direction:column;gap:3px}
+.fg-grow{display:flex;flex-direction:column;gap:3px;flex:1;min-width:180px}
+.lbl{font-size:11px;color:#888;font-weight:500;display:block;margin-bottom:2px}
+
+input:focus,select:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 2px #2563eb22}
+/* varış banner */
+.arr-banner{display:none;align-items:center;gap:10px;background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:10px 14px;margin-bottom:12px;flex-wrap:wrap}
+.arr-banner.show{display:flex}
+/* bilgi şerit */
+.arr-strip{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+.tinfo{background:#eff6ff;border:1px solid #bfdbfe;border-radius:7px;padding:4px 9px;font-size:12px;color:#1e40af}
+.tinfo.org{background:#fff7ed;border-color:#fed7aa;color:#9a3412}
+/* hız çubuğu */
+.speed-bar{display:flex;align-items:center;gap:10px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:9px;padding:8px 14px;margin-bottom:.85rem;font-size:13px;color:#1e40af;flex-wrap:wrap}
+.empty-msg{text-align:center;padding:2rem;color:#bbb;font-size:13px}
+.sep{text-align:center;color:#ccc;font-size:18px;padding:2px 0}
+@media(max-width:620px){
+  .frow{flex-direction:column}
+  .fg-grow,.fg{min-width:100%}
+  .summary-grid{grid-template-columns:repeat(2,1fr)}
+}
+
 </style>
 </head>
 <body>
@@ -236,6 +313,7 @@ input::placeholder,textarea::placeholder{color:var(--mut)}
   <button class="tab w5" onclick="goTab('yerler',this)">📍 Yerler</button>
   <button class="tab w5" onclick="goTab('butce',this)">🎯 Bütçe</button>
   <button class="tab w5" onclick="goTab('oyun',this)">🧠 Oyun</button>
+  <button class="tab w5" onclick="goTab('rota',this)">🗺️ Rota</button>
 </div>
 
 <div class="main">
@@ -391,6 +469,75 @@ input::placeholder,textarea::placeholder{color:var(--mut)}
   <!-- OYUN -->
   <div id="p-oyun" class="panel">
     <div id="oyunEkran"></div>
+  </div>
+
+  <!-- ROTA PLANLAYICI -->
+  <div id="p-rota" class="panel" style="padding:0;background:transparent;border:none">
+    <div style="background:var(--sf);border:1px solid var(--bd);border-radius:12px;padding:12px 16px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <div>
+        <div style="font-size:14px;font-weight:800;color:var(--acc)">🗺️ Rota Planlayıcı</div>
+        <div style="font-size:11px;color:var(--mut)">Gidiş-dönüş rotası, km ve süre hesaplama</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-sm" onclick="rotaShowView('editor')">✏️ Düzenle</button>
+        <button class="btn btn-primary btn-sm" onclick="rotaShowView('map')">🗺️ Harita</button>
+        <button class="btn btn-green btn-sm" onclick="exportExcel()">📊 Excel</button>
+      </div>
+    </div>
+    <div class="rota-app" style="padding:0">
+      
+
+  <!-- EDITOR -->
+  <div id="v-editor">
+    <div class="speed-bar">
+      <label style="font-weight:600">⚡ Ortalama sürüş hızı:</label>
+      <input type="number" id="avg-speed" value="80" min="40" max="150" step="5"
+        style="width:70px;padding:4px 8px;font-size:13px;border-radius:6px;border:1px solid #93c5fd;color:#1a1a1a;background:#fff"/>
+      km/s
+      <span style="color:#6b7280;font-size:12px">(kuş uçuşu × 1.3 katsayısı)</span>
+    </div>
+
+    <div class="rota-tabs">
+      <button class="rota-tab rota-active" id="tab-go" onclick="rotaSwitchRoute('go')">➡️ Gidiş Rotası</button>
+      <button class="rota-tab" id="tab-back" onclick="rotaSwitchRoute('back')">⬅️ Dönüş Rotası</button>
+    </div>
+
+    <div id="pane-go">
+      <div id="list-go"></div>
+      <div class="rota-panel" id="form-go"></div>
+    </div>
+    <div id="pane-back" style="display:none">
+      <div id="list-back"></div>
+      <div class="rota-panel" id="form-back"></div>
+    </div>
+  </div>
+
+  <!-- MAP -->
+  <div id="v-map" style="display:none">
+    <div class="rota-tabs">
+      <button class="rota-tab rota-active" onclick="rotaSwitchMapTab('both',this)">Her İkisi</button>
+      <button class="rota-tab" onclick="rotaSwitchMapTab('go',this)">➡️ Gidiş</button>
+      <button class="rota-tab" onclick="rotaSwitchMapTab('back',this)">⬅️ Dönüş</button>
+    </div>
+    <div class="summary-grid" id="sum-bar"></div>
+    <div class="map-wrap">
+      <div id="the-map"></div>
+      <div class="map-legend">
+        <div class="leg-item"><div class="leg-dot" style="background:#7c3aed"></div>Gidiş</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#db2777"></div>Dönüş</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#0891b2"></div>Konaklama</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#16a34a"></div>Gezi</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#ea580c"></div>Çıkış/Varış</div>
+      </div>
+    </div>
+    <div class="rota-panel">
+      <div class="lbl" style="text-transform:uppercase;letter-spacing:.07em;margin-bottom:.75rem">Rota Detay Tablosu</div>
+      <div id="rtable"></div>
+    </div>
+  </div>
+
+
+    </div>
   </div>
 
   <!-- AYARLAR -->
@@ -2669,6 +2816,1169 @@ function stopOyunSync() {
   if(oyunSyncInterval) { clearInterval(oyunSyncInterval); oyunSyncInterval=null; }
 }
 
+
+function initRota() {
+  // Rota paneli açılınca formları başlat
+  setTimeout(() => {
+    renderForm('go');
+    renderForm('back');
+    renderList('go');
+    renderList('back');
+  }, 100);
+}
+
+const PLACES=[
+  // ── İLLER ──
+  ["Adana",[37.0,35.32],"il"],["Adıyaman",[37.76,38.27],"il"],["Afyonkarahisar",[38.75,30.54],"il"],
+  ["Ağrı",[39.72,43.05],"il"],["Aksaray",[38.37,34.04],"il"],["Amasya",[40.65,35.83],"il"],
+  ["Ankara",[39.93,32.86],"il"],["Antalya",[36.89,30.71],"il"],["Ardahan",[41.11,42.7],"il"],
+  ["Artvin",[41.18,41.82],"il"],["Aydın",[37.84,27.84],"il"],["Balıkesir",[39.65,27.88],"il"],
+  ["Bartın",[41.64,32.34],"il"],["Batman",[37.88,41.13],"il"],["Bayburt",[40.26,40.23],"il"],
+  ["Bilecik",[40.15,29.98],"il"],["Bingöl",[38.88,40.5],"il"],["Bitlis",[38.4,42.12],"il"],
+  ["Bolu",[40.74,31.61],"il"],["Burdur",[37.72,30.29],"il"],["Bursa",[40.19,29.06],"il"],
+  ["Çanakkale",[40.15,26.41],"il"],["Çankırı",[40.6,33.62],"il"],["Çorum",[40.55,34.95],"il"],
+  ["Denizli",[37.77,29.09],"il"],["Diyarbakır",[37.91,40.23],"il"],["Düzce",[40.84,31.16],"il"],
+  ["Edirne",[41.67,26.56],"il"],["Elazığ",[38.67,39.22],"il"],["Erzincan",[39.75,39.49],"il"],
+  ["Erzurum",[39.9,41.27],"il"],["Eskişehir",[39.78,30.52],"il"],["Gaziantep",[37.07,37.38],"il"],
+  ["Giresun",[40.91,38.39],"il"],["Gümüşhane",[40.46,39.48],"il"],["Hakkari",[37.57,43.74],"il"],
+  ["Hatay",[36.4,36.35],"il"],["Iğdır",[39.92,44.05],"il"],["Isparta",[37.76,30.56],"il"],
+  ["İstanbul",[41.01,28.96],"il"],["İzmir",[38.42,27.14],"il"],["Kahramanmaraş",[37.58,36.94],"il"],
+  ["Karabük",[41.2,32.63],"il"],["Karaman",[37.18,33.22],"il"],["Kars",[40.6,43.1],"il"],
+  ["Kastamonu",[41.38,33.78],"il"],["Kayseri",[38.73,35.49],"il"],["Kilis",[36.72,37.12],"il"],
+  ["Kırıkkale",[39.85,33.51],"il"],["Kırklareli",[41.73,27.22],"il"],["Kırşehir",[39.15,34.17],"il"],
+  ["Kocaeli",[40.76,29.94],"il"],["Konya",[37.87,32.49],"il"],["Kütahya",[39.42,29.98],"il"],
+  ["Malatya",[38.35,38.31],"il"],["Manisa",[38.62,27.43],"il"],["Mardin",[37.31,40.74],"il"],
+  ["Mersin",[36.81,34.64],"il"],["Muğla",[37.22,28.37],"il"],["Muş",[38.74,41.49],"il"],
+  ["Nevşehir",[38.62,34.72],"il"],["Niğde",[37.97,34.68],"il"],["Ordu",[40.98,37.88],"il"],
+  ["Osmaniye",[37.07,36.25],"il"],["Rize",[41.02,40.52],"il"],["Sakarya",[40.78,30.4],"il"],
+  ["Samsun",[41.29,36.33],"il"],["Siirt",[37.93,41.95],"il"],["Sinop",[42.03,35.15],"il"],
+  ["Sivas",[39.75,37.02],"il"],["Şanlıurfa",[37.16,38.8],"il"],["Şırnak",[37.52,42.46],"il"],
+  ["Tekirdağ",[40.98,27.51],"il"],["Tokat",[40.31,36.56],"il"],["Trabzon",[41.0,39.72],"il"],
+  ["Tunceli",[39.11,39.55],"il"],["Uşak",[38.67,29.41],"il"],["Van",[38.49,43.38],"il"],
+  ["Yalova",[40.65,29.27],"il"],["Yozgat",[39.82,34.81],"il"],["Zonguldak",[41.45,31.8],"il"],
+
+  // ── KASTAMONU ilçeleri (tümü) ──
+  ["Kastamonu Merkez",[41.38,33.78],"ilçe","Kastamonu"],
+  ["Daday",[41.47,33.46],"ilçe","Kastamonu"],
+  ["Abana",[41.98,34.01],"ilçe","Kastamonu"],
+  ["Ağlı",[41.65,33.97],"ilçe","Kastamonu"],
+  ["Araç",[41.24,33.32],"ilçe","Kastamonu"],
+  ["Azdavay",[41.67,33.31],"ilçe","Kastamonu"],
+  ["Bozkurt",[41.95,34.01],"ilçe","Kastamonu"],
+  ["Cide",[41.89,32.96],"ilçe","Kastamonu"],
+  ["Çatalzeytin",[41.94,33.43],"ilçe","Kastamonu"],
+  ["Devrekani",[41.6,33.7],"ilçe","Kastamonu"],
+  ["Doğanyurt",[41.79,33.56],"ilçe","Kastamonu"],
+  ["Hanönü",[41.35,33.52],"ilçe","Kastamonu"],
+  ["İhsangazi",[41.22,33.5],"ilçe","Kastamonu"],
+  ["İnebolu",[41.97,33.77],"ilçe","Kastamonu"],
+  ["Küre",[41.8,33.71],"ilçe","Kastamonu"],
+  ["Pınarbaşı",[41.54,33.86],"ilçe","Kastamonu"],
+  ["Seydiler",[41.54,33.56],"ilçe","Kastamonu"],
+  ["Şenpazar",[41.79,33.18],"ilçe","Kastamonu"],
+  ["Taşköprü",[41.51,34.22],"ilçe","Kastamonu"],
+  ["Tosya",[41.02,34.04],"ilçe","Kastamonu"],
+
+  // ── İSTANBUL ilçeleri ──
+  ["Adalar",[40.87,29.1],"ilçe","İstanbul"],["Arnavutköy",[41.18,28.74],"ilçe","İstanbul"],
+  ["Ataşehir",[40.99,29.12],"ilçe","İstanbul"],["Avcılar",[40.98,28.72],"ilçe","İstanbul"],
+  ["Bağcılar",[41.04,28.86],"ilçe","İstanbul"],["Bahçelievler",[41.0,28.86],"ilçe","İstanbul"],
+  ["Bakırköy",[40.97,28.87],"ilçe","İstanbul"],["Başakşehir",[41.09,28.8],"ilçe","İstanbul"],
+  ["Bayrampaşa",[41.05,28.91],"ilçe","İstanbul"],["Beşiktaş",[41.04,29.01],"ilçe","İstanbul"],
+  ["Beykoz",[41.12,29.1],"ilçe","İstanbul"],["Beylikdüzü",[40.98,28.64],"ilçe","İstanbul"],
+  ["Beyoğlu",[41.03,28.97],"ilçe","İstanbul"],["Büyükçekmece",[41.02,28.58],"ilçe","İstanbul"],
+  ["Çatalca",[41.14,28.46],"ilçe","İstanbul"],["Çekmeköy",[41.04,29.19],"ilçe","İstanbul"],
+  ["Esenler",[41.04,28.88],"ilçe","İstanbul"],["Esenyurt",[41.03,28.67],"ilçe","İstanbul"],
+  ["Eyüpsultan",[41.08,28.93],"ilçe","İstanbul"],["Fatih",[41.02,28.94],"ilçe","İstanbul"],
+  ["Gaziosmanpaşa",[41.07,28.91],"ilçe","İstanbul"],["Güngören",[41.02,28.87],"ilçe","İstanbul"],
+  ["Kadıköy",[40.98,29.08],"ilçe","İstanbul"],["Kağıthane",[41.08,28.97],"ilçe","İstanbul"],
+  ["Kartal",[40.9,29.19],"ilçe","İstanbul"],["Küçükçekmece",[40.99,28.78],"ilçe","İstanbul"],
+  ["Maltepe",[40.93,29.13],"ilçe","İstanbul"],["Pendik",[40.88,29.23],"ilçe","İstanbul"],
+  ["Sancaktepe",[41.0,29.23],"ilçe","İstanbul"],["Sarıyer",[41.17,29.06],"ilçe","İstanbul"],
+  ["Silivri",[41.07,28.24],"ilçe","İstanbul"],["Sultanbeyli",[40.96,29.27],"ilçe","İstanbul"],
+  ["Sultangazi",[41.1,28.87],"ilçe","İstanbul"],["Şile",[41.18,29.61],"ilçe","İstanbul"],
+  ["Şişli",[41.06,28.99],"ilçe","İstanbul"],["Tuzla",[40.82,29.3],"ilçe","İstanbul"],
+  ["Ümraniye",[41.02,29.11],"ilçe","İstanbul"],["Üsküdar",[41.02,29.01],"ilçe","İstanbul"],
+  ["Zeytinburnu",[41.0,28.9],"ilçe","İstanbul"],
+
+  // ── ANKARA ilçeleri ──
+  ["Altındağ",[39.95,32.88],"ilçe","Ankara"],["Ayaş",[40.02,32.34],"ilçe","Ankara"],
+  ["Bala",[39.56,33.11],"ilçe","Ankara"],["Beypazarı",[40.17,31.93],"ilçe","Ankara"],
+  ["Çamlıdere",[40.49,32.49],"ilçe","Ankara"],["Çankaya",[39.91,32.86],"ilçe","Ankara"],
+  ["Çubuk",[40.23,33.03],"ilçe","Ankara"],["Elmadağ",[39.92,33.23],"ilçe","Ankara"],
+  ["Etimesgut",[39.95,32.68],"ilçe","Ankara"],["Evren",[39.02,33.52],"ilçe","Ankara"],
+  ["Gölbaşı",[39.79,32.81],"ilçe","Ankara"],["Güdül",[40.22,32.24],"ilçe","Ankara"],
+  ["Haymana",[39.43,32.5],"ilçe","Ankara"],["Kalecik",[40.09,33.41],"ilçe","Ankara"],
+  ["Kazan",[40.19,32.69],"ilçe","Ankara"],["Keçiören",[40.0,32.86],"ilçe","Ankara"],
+  ["Kızılcahamam",[40.47,32.65],"ilçe","Ankara"],["Mamak",[39.93,33.0],"ilçe","Ankara"],
+  ["Nallıhan",[40.19,31.35],"ilçe","Ankara"],["Polatlı",[39.58,32.15],"ilçe","Ankara"],
+  ["Pursaklar",[40.04,32.9],"ilçe","Ankara"],["Sincan",[39.97,32.58],"ilçe","Ankara"],
+  ["Şereflikoçhisar",[38.94,33.54],"ilçe","Ankara"],["Yenimahalle",[39.99,32.77],"ilçe","Ankara"],
+
+  // ── İZMİR ilçeleri ──
+  ["Aliağa",[38.8,26.97],"ilçe","İzmir"],["Balçova",[38.39,27.07],"ilçe","İzmir"],
+  ["Bayındır",[38.22,27.65],"ilçe","İzmir"],["Bayraklı",[38.44,27.16],"ilçe","İzmir"],
+  ["Bergama",[39.12,27.18],"ilçe","İzmir"],["Beydağ",[38.09,28.21],"ilçe","İzmir"],
+  ["Bornova",[38.46,27.22],"ilçe","İzmir"],["Buca",[38.39,27.18],"ilçe","İzmir"],
+  ["Çeşme",[38.32,26.3],"ilçe","İzmir"],["Çiğli",[38.49,27.06],"ilçe","İzmir"],
+  ["Dikili",[39.07,26.89],"ilçe","İzmir"],["Efes",[37.94,27.34],"ilçe","İzmir"],
+  ["Foça",[38.67,26.76],"ilçe","İzmir"],["Gaziemir",[38.32,27.13],"ilçe","İzmir"],
+  ["Güzelbahçe",[38.38,26.9],"ilçe","İzmir"],["Karabağlar",[38.38,27.14],"ilçe","İzmir"],
+  ["Karaburun",[38.64,26.51],"ilçe","İzmir"],["Karşıyaka",[38.46,27.11],"ilçe","İzmir"],
+  ["Kemalpaşa",[38.43,27.43],"ilçe","İzmir"],["Kiraz",[38.24,28.2],"ilçe","İzmir"],
+  ["Konak",[38.42,27.14],"ilçe","İzmir"],["Kınık",[39.09,27.38],"ilçe","İzmir"],
+  ["Menderes",[38.24,27.13],"ilçe","İzmir"],["Menemen",[38.61,27.07],"ilçe","İzmir"],
+  ["Narlıdere",[38.39,27.01],"ilçe","İzmir"],["Ödemiş",[38.23,27.98],"ilçe","İzmir"],
+  ["Seferihisar",[38.2,26.84],"ilçe","İzmir"],["Selçuk",[37.95,27.37],"ilçe","İzmir"],
+  ["Tire",[38.09,27.73],"ilçe","İzmir"],["Torbalı",[38.16,27.36],"ilçe","İzmir"],
+  ["Urla",[38.32,26.76],"ilçe","İzmir"],
+
+  // ── ANTALYA ilçeleri ──
+  ["Akseki",[37.05,31.79],"ilçe","Antalya"],["Aksu",[36.9,30.84],"ilçe","Antalya"],
+  ["Alanya",[36.54,32.0],"ilçe","Antalya"],["Demre",[36.25,29.98],"ilçe","Antalya"],
+  ["Döşemealtı",[37.04,30.58],"ilçe","Antalya"],["Elmalı",[36.74,29.92],"ilçe","Antalya"],
+  ["Finike",[36.3,30.15],"ilçe","Antalya"],["Gazipaşa",[36.27,32.51],"ilçe","Antalya"],
+  ["Gündoğmuş",[36.81,32.04],"ilçe","Antalya"],["İbradı",[37.13,31.58],"ilçe","Antalya"],
+  ["Kaş",[36.2,29.64],"ilçe","Antalya"],["Kemer",[36.6,30.56],"ilçe","Antalya"],
+  ["Kepez",[36.92,30.73],"ilçe","Antalya"],["Konyaaltı",[36.88,30.64],"ilçe","Antalya"],
+  ["Korkuteli",[37.06,30.19],"ilçe","Antalya"],["Kumluca",[36.37,30.28],"ilçe","Antalya"],
+  ["Manavgat",[36.79,31.44],"ilçe","Antalya"],["Muratpaşa",[36.87,30.71],"ilçe","Antalya"],
+  ["Olympos",[36.39,30.47],"ilçe","Antalya"],["Serik",[36.92,31.1],"ilçe","Antalya"],
+  ["Side",[36.77,31.39],"ilçe","Antalya"],
+
+  // ── BURSA ilçeleri ──
+  ["Büyükorhan",[39.76,28.93],"ilçe","Bursa"],["Gemlik",[40.43,29.16],"ilçe","Bursa"],
+  ["Gürsu",[40.22,29.19],"ilçe","Bursa"],["Harmancık",[39.68,29.15],"ilçe","Bursa"],
+  ["İnegöl",[40.08,29.51],"ilçe","Bursa"],["İznik",[40.43,29.72],"ilçe","Bursa"],
+  ["Karacabey",[40.22,28.36],"ilçe","Bursa"],["Keles",[39.91,29.23],"ilçe","Bursa"],
+  ["Kestel",[40.2,29.24],"ilçe","Bursa"],["Mudanya",[40.37,28.88],"ilçe","Bursa"],
+  ["Mustafakemalpaşa",[40.04,28.4],"ilçe","Bursa"],["Nilüfer",[40.21,28.96],"ilçe","Bursa"],
+  ["Orhaneli",[39.9,28.99],"ilçe","Bursa"],["Orhangazi",[40.49,29.31],"ilçe","Bursa"],
+  ["Osmangazi",[40.2,29.06],"ilçe","Bursa"],["Yıldırım",[40.19,29.11],"ilçe","Bursa"],
+  ["Yenişehir",[40.27,29.64],"ilçe","Bursa"],
+
+  // ── TRABZON ilçeleri ──
+  ["Akçaabat",[40.99,39.56],"ilçe","Trabzon"],["Araklı",[40.94,40.05],"ilçe","Trabzon"],
+  ["Arsin",[40.93,39.92],"ilçe","Trabzon"],["Beşikdüzü",[41.05,39.23],"ilçe","Trabzon"],
+  ["Çarşıbaşı",[41.03,39.44],"ilçe","Trabzon"],["Çaykara",[40.73,40.24],"ilçe","Trabzon"],
+  ["Dernekpazarı",[40.77,40.12],"ilçe","Trabzon"],["Düzköy",[40.87,39.52],"ilçe","Trabzon"],
+  ["Hayrat",[40.86,40.35],"ilçe","Trabzon"],["Köprübaşı",[40.74,39.72],"ilçe","Trabzon"],
+  ["Maçka",[40.81,39.62],"ilçe","Trabzon"],["Of",[40.96,40.26],"ilçe","Trabzon"],
+  ["Ortahisar",[41.0,39.72],"ilçe","Trabzon"],["Shalpazarı",[40.97,39.19],"ilçe","Trabzon"],
+  ["Sürmene",[40.91,40.12],"ilçe","Trabzon"],["Sumela",[40.69,39.66],"ilçe","Trabzon"],
+  ["Tonya",[40.87,39.28],"ilçe","Trabzon"],["Uzungöl",[40.62,40.27],"ilçe","Trabzon"],
+  ["Vakfıkebir",[41.03,39.28],"ilçe","Trabzon"],["Yomra",[40.96,39.86],"ilçe","Trabzon"],
+
+  // ── SAMSUN ilçeleri ──
+  ["Alaçam",[41.61,35.59],"ilçe","Samsun"],["Asarcık",[41.07,36.07],"ilçe","Samsun"],
+  ["Atakum",[41.33,36.23],"ilçe","Samsun"],["Ayvacık",[40.97,35.59],"ilçe","Samsun"],
+  ["Bafra",[41.57,35.91],"ilçe","Samsun"],["Canik",[41.28,36.37],"ilçe","Samsun"],
+  ["Çarşamba",[41.2,36.72],"ilçe","Samsun"],["Havza",[40.97,35.67],"ilçe","Samsun"],
+  ["İlkadım",[41.29,36.33],"ilçe","Samsun"],["Kavak",[41.08,36.04],"ilçe","Samsun"],
+  ["Ladik",[40.92,35.91],"ilçe","Samsun"],["Ondokuzmayıs",[41.52,36.1],"ilçe","Samsun"],
+  ["Salıpazarı",[41.07,36.6],"ilçe","Samsun"],["Tekkeköy",[41.22,36.46],"ilçe","Samsun"],
+  ["Terme",[41.22,36.98],"ilçe","Samsun"],["Vezirköprü",[41.14,35.46],"ilçe","Samsun"],
+  ["Yakakent",[41.61,35.49],"ilçe","Samsun"],
+
+  // ── KONYA ilçeleri ──
+  ["Ahırlı",[37.35,31.88],"ilçe","Konya"],["Akören",[37.56,32.59],"ilçe","Konya"],
+  ["Akşehir",[38.36,31.41],"ilçe","Konya"],["Altınekin",[38.32,32.69],"ilçe","Konya"],
+  ["Beyşehir",[37.68,31.72],"ilçe","Konya"],["Bozkır",[37.19,32.24],"ilçe","Konya"],
+  ["Çumra",[37.57,32.78],"ilçe","Konya"],["Derbent",[37.74,32.38],"ilçe","Konya"],
+  ["Derebucak",[37.32,31.73],"ilçe","Konya"],["Doğanhisar",[38.15,31.68],"ilçe","Konya"],
+  ["Emirgazi",[37.9,33.83],"ilçe","Konya"],["Ereğli",[37.51,34.06],"ilçe","Konya"],
+  ["Güneysınır",[37.38,32.45],"ilçe","Konya"],["Hadim",[36.99,32.45],"ilçe","Konya"],
+  ["Halkapınar",[37.26,33.71],"ilçe","Konya"],["Hüyük",[37.74,31.73],"ilçe","Konya"],
+  ["Ilgın",[38.28,31.92],"ilçe","Konya"],["Kadınhanı",[38.24,32.23],"ilçe","Konya"],
+  ["Karapınar",[37.71,33.56],"ilçe","Konya"],["Karatay",[37.87,32.49],"ilçe","Konya"],
+  ["Kulu",[39.09,33.08],"ilçe","Konya"],["Meram",[37.82,32.43],"ilçe","Konya"],
+  ["Sarayönü",[38.26,32.41],"ilçe","Konya"],["Selçuklu",[37.93,32.46],"ilçe","Konya"],
+  ["Seydişehir",[37.42,31.85],"ilçe","Konya"],["Taşkent",[36.99,32.49],"ilçe","Konya"],
+  ["Tuzlukçu",[38.01,31.77],"ilçe","Konya"],["Yalıhüyük",[37.54,31.77],"ilçe","Konya"],
+  ["Yunak",[38.82,31.73],"ilçe","Konya"],
+
+  // ── SINOP ilçeleri ──
+  ["Sinop Merkez",[42.03,35.15],"ilçe","Sinop"],["Ayancık",[41.95,34.59],"ilçe","Sinop"],
+  ["Boyabat",[41.47,34.77],"ilçe","Sinop"],["Dikmen",[41.67,34.83],"ilçe","Sinop"],
+  ["Durağan",[41.42,35.13],"ilçe","Sinop"],["Erfelek",[41.88,34.92],"ilçe","Sinop"],
+  ["Gerze",[41.8,35.19],"ilçe","Sinop"],["Saraydüzü",[41.43,34.97],"ilçe","Sinop"],
+  ["Türkeli",[41.96,34.33],"ilçe","Sinop"],
+
+  // ── ÇANKIRI ilçeleri ──
+  ["Çankırı Merkez",[40.6,33.62],"ilçe","Çankırı"],["Atkaracalar",[41.04,32.92],"ilçe","Çankırı"],
+  ["Bayramören",[41.22,33.19],"ilçe","Çankırı"],["Çerkeş",[40.81,32.89],"ilçe","Çankırı"],
+  ["Eldivan",[40.45,33.52],"ilçe","Çankırı"],["Ilgaz",[40.91,33.62],"ilçe","Çankırı"],
+  ["Khanköy",[40.72,33.2],"ilçe","Çankırı"],["Korgun",[40.52,33.54],"ilçe","Çankırı"],
+  ["Kurşunlu",[40.84,33.26],"ilçe","Çankırı"],["Orta",[40.52,33.13],"ilçe","Çankırı"],
+  ["Şabanözü",[40.24,33.36],"ilçe","Çankırı"],["Yapraklı",[40.75,33.77],"ilçe","Çankırı"],
+
+  // ── KARABÜK ilçeleri ──
+  ["Safranbolu",[41.25,32.69],"ilçe","Karabük"],["Eflani",[41.42,32.95],"ilçe","Karabük"],
+  ["Eskipazar",[41.04,32.52],"ilçe","Karabük"],["Ovacık",[41.27,32.53],"ilçe","Karabük"],
+  ["Yenice",[41.2,32.33],"ilçe","Karabük"],["Kıbrıscık",[40.46,31.85],"ilçe","Karabük"],
+
+  // ── BARTIN ilçeleri ──
+  ["Amasra",[41.75,32.39],"ilçe","Bartın"],["Bartın Merkez",[41.64,32.34],"ilçe","Bartın"],
+  ["Kurucaşile",[41.84,32.72],"ilçe","Bartın"],["Ulus",[41.58,32.64],"ilçe","Bartın"],
+
+  // ── ZONGULDAK ilçeleri ──
+  ["Alaplı",[41.41,31.4],"ilçe","Zonguldak"],["Çaycuma",[41.42,32.09],"ilçe","Zonguldak"],
+  ["Devrek",[41.23,32.0],"ilçe","Zonguldak"],["Ereğli",[41.28,31.42],"ilçe","Zonguldak"],
+  ["Gökçebey",[41.3,32.14],"ilçe","Zonguldak"],["Zonguldak Merkez",[41.45,31.8],"ilçe","Zonguldak"],
+
+  // ── BOLU ilçeleri ──
+  ["Bolu Merkez",[40.74,31.61],"ilçe","Bolu"],["Dörtdivan",[40.65,31.92],"ilçe","Bolu"],
+  ["Gerede",[40.8,32.2],"ilçe","Bolu"],["Göynük",[40.4,30.77],"ilçe","Bolu"],
+  ["Kıbrıscık",[40.46,31.85],"ilçe","Bolu"],["Mengen",[40.99,32.21],"ilçe","Bolu"],
+  ["Mudurnu",[40.46,31.21],"ilçe","Bolu"],["Seben",[40.36,31.58],"ilçe","Bolu"],
+  ["Yeniçağa",[40.77,32.02],"ilçe","Bolu"],["Abant",[40.6,31.28],"ilçe","Bolu"],
+
+  // ── DÜZCE ilçeleri ──
+  ["Akçakoca",[41.09,31.12],"ilçe","Düzce"],["Cumayeri",[40.87,30.77],"ilçe","Düzce"],
+  ["Çilimli",[40.77,31.26],"ilçe","Düzce"],["Düzce Merkez",[40.84,31.16],"ilçe","Düzce"],
+  ["Gölyaka",[40.75,31.04],"ilçe","Düzce"],["Gümüşova",[40.85,30.32],"ilçe","Düzce"],
+  ["Kaynaşlı",[40.78,31.39],"ilçe","Düzce"],["Yığılca",[40.96,31.43],"ilçe","Düzce"],
+
+  // ── MUĞLA ilçeleri ──
+  ["Bodrum",[37.03,27.43],"ilçe","Muğla"],["Dalaman",[36.77,28.8],"ilçe","Muğla"],
+  ["Dalyan",[36.84,28.63],"ilçe","Muğla"],["Datça",[36.73,27.69],"ilçe","Muğla"],
+  ["Fethiye",[36.65,29.12],"ilçe","Muğla"],["Köyceğiz",[36.96,28.69],"ilçe","Muğla"],
+  ["Marmaris",[36.85,28.27],"ilçe","Muğla"],["Menteşe",[37.22,28.37],"ilçe","Muğla"],
+  ["Milas",[37.32,27.78],"ilçe","Muğla"],["Ölüdeniz",[36.55,29.11],"ilçe","Muğla"],
+  ["Ortaca",[36.83,28.77],"ilçe","Muğla"],["Seydikemer",[36.71,29.41],"ilçe","Muğla"],
+  ["Turgutreis",[37.0,27.26],"ilçe","Muğla"],["Ula",[37.11,28.43],"ilçe","Muğla"],
+  ["Yatağan",[37.35,28.14],"ilçe","Muğla"],["Göcek",[36.75,28.93],"ilçe","Muğla"],
+
+  // ── NEVŞEHIR ilçeleri ──
+  ["Acıgöl",[38.55,34.52],"ilçe","Nevşehir"],["Avanos",[38.72,34.85],"ilçe","Nevşehir"],
+  ["Derinkuyu",[38.37,34.73],"ilçe","Nevşehir"],["Göreme",[38.64,34.85],"ilçe","Nevşehir"],
+  ["Gülşehir",[38.75,34.62],"ilçe","Nevşehir"],["Hacıbektaş",[38.95,34.56],"ilçe","Nevşehir"],
+  ["Kapadokya",[38.65,34.83],"ilçe","Nevşehir"],["Kozaklı",[38.96,34.84],"ilçe","Nevşehir"],
+  ["Nevşehir Merkez",[38.62,34.72],"ilçe","Nevşehir"],["Üçhisar",[38.63,34.81],"ilçe","Nevşehir"],
+  ["Ürgüp",[38.62,34.91],"ilçe","Nevşehir"],
+
+  // ── DENIZLI ilçeleri ──
+  ["Acıpayam",[37.45,29.35],"ilçe","Denizli"],["Babadağ",[37.8,29.09],"ilçe","Denizli"],
+  ["Bekilli",[38.16,29.45],"ilçe","Denizli"],["Beyağaç",[37.26,29.13],"ilçe","Denizli"],
+  ["Bozkurt",[37.75,29.59],"ilçe","Denizli"],["Buldan",[38.05,28.83],"ilçe","Denizli"],
+  ["Çal",[38.08,29.39],"ilçe","Denizli"],["Çameli",[37.07,29.35],"ilçe","Denizli"],
+  ["Çardak",[37.82,30.15],"ilçe","Denizli"],["Çivril",[38.3,29.73],"ilçe","Denizli"],
+  ["Güney",[37.83,29.07],"ilçe","Denizli"],["Honaz",[37.76,29.27],"ilçe","Denizli"],
+  ["Kale",[37.44,28.83],"ilçe","Denizli"],["Merkezefendi",[37.78,29.07],"ilçe","Denizli"],
+  ["Pamukkale",[37.93,29.12],"ilçe","Denizli"],["Sarayköy",[37.92,28.93],"ilçe","Denizli"],
+  ["Serinhisar",[37.59,29.29],"ilçe","Denizli"],["Tavas",[37.57,29.07],"ilçe","Denizli"],
+
+  // ── KAYSERI ilçeleri ──
+  ["Akkışla",[38.54,35.7],"ilçe","Kayseri"],["Bünyan",[38.85,35.87],"ilçe","Kayseri"],
+  ["Develi",[38.38,35.49],"ilçe","Kayseri"],["Felahiye",[39.1,35.8],"ilçe","Kayseri"],
+  ["Hacılar",[38.65,35.41],"ilçe","Kayseri"],["İncesu",[38.63,35.18],"ilçe","Kayseri"],
+  ["Kocasinan",[38.73,35.49],"ilçe","Kayseri"],["Melikgazi",[38.72,35.42],"ilçe","Kayseri"],
+  ["Özvatan",[38.66,35.84],"ilçe","Kayseri"],["Pınarbaşı",[38.72,36.39],"ilçe","Kayseri"],
+  ["Sarıoğlan",[39.08,36.04],"ilçe","Kayseri"],["Sarız",[38.48,36.5],"ilçe","Kayseri"],
+  ["Talas",[38.67,35.55],"ilçe","Kayseri"],["Tomarza",[38.45,35.79],"ilçe","Kayseri"],
+  ["Yahyalı",[38.1,35.36],"ilçe","Kayseri"],["Yeşilhisar",[38.35,35.09],"ilçe","Kayseri"],
+
+  // ── DİĞER ÖNEMLİ İLÇELER ──
+  ["Safranbolu",[41.25,32.69],"ilçe","Karabük"],
+  ["Ihlara",[38.25,34.35],"ilçe","Aksaray"],["Güzelyurt",[38.12,34.38],"ilçe","Aksaray"],
+  ["Ani",[40.51,43.57],"ilçe","Kars"],["Sarıkamış",[40.33,42.59],"ilçe","Kars"],
+  ["Doğubayazıt",[39.55,44.08],"ilçe","Ağrı"],
+  ["Nemrut",[37.98,38.74],"ilçe","Adıyaman"],["Kahta",[37.78,38.62],"ilçe","Adıyaman"],
+  ["Halfeti",[37.27,37.77],"ilçe","Şanlıurfa"],["Harran",[36.87,39.03],"ilçe","Şanlıurfa"],
+  ["Midyat",[37.42,41.34],"ilçe","Mardin"],["Nusaybin",[37.07,41.21],"ilçe","Mardin"],
+  ["Tatvan",[38.5,42.28],"ilçe","Bitlis"],["Ahlat",[38.75,42.48],"ilçe","Bitlis"],
+  ["Van Gölü",[38.6,43.0],"ilçe","Van"],["Gevaş",[38.29,43.11],"ilçe","Van"],
+  ["Erciş",[39.02,43.35],"ilçe","Van"],
+  ["Uzundere",[40.56,41.56],"ilçe","Erzurum"],["Tortum",[40.3,41.55],"ilçe","Erzurum"],
+  ["Oltu",[40.55,42.15],"ilçe","Erzurum"],["Palandöken",[39.85,41.3],"ilçe","Erzurum"],
+  ["Çamlıhemşin",[41.06,40.97],"ilçe","Rize"],["Ardeşen",[41.19,40.99],"ilçe","Rize"],
+  ["Pazar",[41.18,40.88],"ilçe","Rize"],["Çayeli",[41.09,40.72],"ilçe","Rize"],
+  ["Çaykara",[40.73,40.24],"ilçe","Trabzon"],
+  ["Alucra",[40.32,38.77],"ilçe","Giresun"],["Şebinkarahisar",[40.29,38.43],"ilçe","Giresun"],
+  ["Tirebolu",[40.99,38.82],"ilçe","Giresun"],
+  ["Niksar",[40.6,36.95],"ilçe","Tokat"],["Turhal",[40.39,36.08],"ilçe","Tokat"],
+  ["Zile",[40.31,35.89],"ilçe","Tokat"],
+  ["Merzifon",[40.88,35.46],"ilçe","Amasya"],["Suluova",[40.84,35.65],"ilçe","Amasya"],
+  ["Taşova",[40.74,36.32],"ilçe","Amasya"],
+  ["İskenderun",[36.58,36.17],"ilçe","Hatay"],["Antakya",[36.2,36.16],"ilçe","Hatay"],
+  ["Samandağ",[36.07,35.98],"ilçe","Hatay"],
+  ["Tarsus",[36.92,34.9],"ilçe","Mersin"],["Silifke",[36.38,33.93],"ilçe","Mersin"],
+  ["Anamur",[36.08,32.83],"ilçe","Mersin"],["Erdemli",[36.61,34.31],"ilçe","Mersin"],
+  ["Kuşadası",[37.86,27.26],"ilçe","Aydın"],["Didim",[37.37,27.27],"ilçe","Aydın"],
+  ["Nazilli",[37.91,28.33],"ilçe","Aydın"],["Söke",[37.75,27.41],"ilçe","Aydın"],
+  ["Edremit",[39.6,27.02],"ilçe","Balıkesir"],["Erdek",[40.4,27.8],"ilçe","Balıkesir"],
+  ["Bandırma",[40.35,27.98],"ilçe","Balıkesir"],["Ayvalık",[39.31,26.69],"ilçe","Balıkesir"],
+  ["Gönen",[40.1,27.65],"ilçe","Balıkesir"],
+  ["Çanakkale Merkez",[40.15,26.41],"ilçe","Çanakkale"],["Gelibolu",[40.42,26.67],"ilçe","Çanakkale"],
+  ["Gökçeada",[40.18,25.9],"ilçe","Çanakkale"],["Bozcaada",[39.84,26.06],"ilçe","Çanakkale"],
+  ["Ezine",[39.79,26.34],"ilçe","Çanakkale"],["Lapseki",[40.35,26.68],"ilçe","Çanakkale"],
+  ["Biga",[40.22,27.24],"ilçe","Çanakkale"],
+  ["Uzunköprü",[41.27,26.68],"ilçe","Edirne"],["Keşan",[40.86,26.64],"ilçe","Edirne"],
+  ["Havsa",[41.56,26.82],"ilçe","Edirne"],
+  ["Kırklareli Merkez",[41.73,27.22],"ilçe","Kırklareli"],["Lüleburgaz",[41.4,27.36],"ilçe","Kırklareli"],
+  ["Babaeski",[41.43,27.1],"ilçe","Kırklareli"],["Vize",[41.57,27.77],"ilçe","Kırklareli"],
+  ["Malkara",[41.01,26.9],"ilçe","Tekirdağ"],["Çorlu",[41.16,27.8],"ilçe","Tekirdağ"],
+  ["Muratlı",[41.17,27.49],"ilçe","Tekirdağ"],
+  ["Gemlik",[40.43,29.16],"ilçe","Bursa"],["Mudanya",[40.37,28.88],"ilçe","Bursa"],
+  ["Cerrahpaşa",[41.02,28.93],"ilçe","İstanbul"],
+  ["Kadirli",[37.37,36.09],"ilçe","Osmaniye"],
+  ["Silopi",[37.25,42.46],"ilçe","Şırnak"],["Cizre",[37.33,42.19],"ilçe","Şırnak"],
+  ["İdil",[37.33,41.88],"ilçe","Şırnak"],
+  ["Patnos",[39.24,42.86],"ilçe","Ağrı"],["Taşlıçay",[39.63,43.34],"ilçe","Ağrı"],
+  ["Eleskirt",[39.79,42.68],"ilçe","Ağrı"]
+];
+
+/* STATE */
+const routes = { go: [], back: [] };
+const selected = { go: null, back: null };
+const acResults = { go: [], back: [] };
+const acIdx = { go: -1, back: -1 };
+let rotaMapObj = null;
+let curMapMode = 'both';
+
+/* HELPERS */
+function norm(s) {
+  return s.toLowerCase()
+    .replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ş/g,'s')
+    .replace(/ı/g,'i').replace(/ö/g,'o').replace(/ç/g,'c');
+}
+function roadKm(a, b) {
+  const R=6371, dLat=(b[0]-a[0])*Math.PI/180, dLon=(b[1]-a[1])*Math.PI/180;
+  const x=Math.sin(dLat/2)**2+Math.cos(a[0]*Math.PI/180)*Math.cos(b[0]*Math.PI/180)*Math.sin(dLon/2)**2;
+  return Math.round(R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x))*1.3);
+}
+function getSpeed() { return parseInt(document.getElementById('avg-speed').value) || 80; }
+function addMins(t, mins) {
+  if (!t || isNaN(mins)) return null;
+  const [h,m] = t.split(':').map(Number);
+  const tot = h*60 + m + Math.round(mins);
+  return String(Math.floor(tot/60)%24).padStart(2,'0') + ':' + String(tot%60).padStart(2,'0');
+}
+function driveMins(km) { return (km / getSpeed()) * 60; }
+function fmtDur(mins) {
+  const h = Math.floor(mins/60), m = Math.round(mins%60);
+  return h===0 ? m+'dk' : (m>0 ? h+'s '+m+'dk' : h+'s');
+}
+const GUNLER = ['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'];
+function fmtDate(dateStr) {
+  if (!dateStr) return '';
+  const [y,m,d] = dateStr.split('-').map(Number);
+  const dt = new Date(y, m-1, d);
+  return dateStr + ' ' + GUNLER[dt.getDay()];
+}
+function dayName(dateStr) {
+  if (!dateStr) return '';
+  const [y,m,d] = dateStr.split('-').map(Number);
+  return GUNLER[new Date(y, m-1, d).getDay()];
+}
+const COL_GO = ['#7c3aed','#5b21b6','#4c1d95','#6d28d9','#8b5cf6','#a78bfa'];
+const COL_BK = ['#db2777','#9d174d','#831843','#be185d','#ec4899','#f472b6'];
+function gCol(r, i) { return r==='go' ? COL_GO[i%COL_GO.length] : COL_BK[i%COL_BK.length]; }
+function sIcon(t) { return t==='hotel'?'🏨':t==='departure'?'🚗':t==='arrival'?'🏁':'📍'; }
+function sLabel(t) { return t==='hotel'?'Konaklama':t==='departure'?'Çıkış':t==='arrival'?'Varış':'Gezi'; }
+function sBadge(t) { return t==='hotel'?'b-hotel':(t==='departure'||t==='arrival')?'b-dep':'b-sight'; }
+
+/* TIMELINE */
+function calcTimeline(r) {
+  const data = routes[r];
+  if (!data.length) return;
+  data.forEach((city, idx) => {
+    if (idx === 0) {
+      city._km = 0; city._driveMins = 0; city._arrTime = city.time || null;
+    } else {
+      const prev = data[idx-1];
+      let dep = prev.time || null;
+      if (!dep) {
+        dep = prev._arrTime;
+        prev.stops.forEach(s => { const d=parseFloat(s.duration)||0; if(dep&&d>0) dep=addMins(dep,d*60); });
+      }
+      const km = (prev.coords && city.coords) ? roadKm(prev.coords, city.coords) : 0;
+      city._km = km;
+      city._driveMins = driveMins(km);
+      city._arrTime = dep ? addMins(dep, city._driveMins) : null;
+    }
+    let t = city._arrTime;
+    city.stops.forEach(s => {
+      s._startTime = t;
+      const d = parseFloat(s.duration) || 0;
+      if (t && d > 0) t = addMins(t, d*60);
+      s._endTime = t;
+    });
+  });
+}
+
+/* AUTOCOMPLETE */
+function onSearch(r) {
+  const q = norm(document.getElementById('search-'+r).value.trim());
+  const dd = document.getElementById('dd-'+r);
+  if (q.length < 1) { dd.style.display='none'; acResults[r]=[]; return; }
+  const res = PLACES.filter(p => norm(p[0]).includes(q)).slice(0,14);
+  acResults[r] = res;
+  if (!res.length) { dd.style.display='none'; return; }
+  dd.innerHTML = res.map((p,i) =>
+    '<div class="ac-item" data-idx="'+i+'">'+p[0]+
+    '<span class="ac-sub">'+(p[2]==='il'?'İl':'İlçe'+(p[3]?' — '+p[3]:''))+'</span></div>'
+  ).join('');
+  acIdx[r] = -1;
+  dd.style.display = 'block';
+}
+
+function selectPlace(r, i) {
+  const p = acResults[r][i];
+  if (!p) return;
+  selected[r] = { name:p[0], coords:p[1], type:p[2], parent:p[3]||'' };
+  const inp = document.getElementById('search-'+r);
+  if (inp) inp.value = p[0] + (p[3] ? ' ('+p[3]+')' : '');
+  const dd = document.getElementById('dd-'+r);
+  if (dd) dd.style.display = 'none';
+  updateBanner(r);
+}
+
+function onKey(e, r) {
+  const dd = document.getElementById('dd-'+r);
+  if (!dd) return;
+  const items = dd.querySelectorAll('.ac-item');
+  if (e.key==='ArrowDown') { acIdx[r]=Math.min(acIdx[r]+1,items.length-1); }
+  else if (e.key==='ArrowUp') { acIdx[r]=Math.max(acIdx[r]-1,0); }
+  else if (e.key==='Enter') { if(acResults[r].length>0) selectPlace(r, acIdx[r]>=0?acIdx[r]:0); return; }
+  else if (e.key==='Escape') { dd.style.display='none'; return; }
+  items.forEach((el,i) => el.classList.toggle('sel', i===acIdx[r]));
+}
+
+/* BANNER */
+function updateBanner(r) {
+  const banner = document.getElementById('prev-banner-'+r);
+  if (!banner) return;
+  const data = routes[r];
+  const sel = selected[r];
+  if (!data.length || !sel || !sel.coords) { banner.classList.remove('show'); return; }
+  const last = data[data.length-1];
+  let dep = last.time || null;
+  if (!dep) {
+    dep = last._arrTime;
+    last.stops.forEach(s => { const d=parseFloat(s.duration)||0; if(dep&&d>0) dep=addMins(dep,d*60); });
+  }
+  if (!dep || !last.coords) { banner.classList.remove('show'); return; }
+  const km = roadKm(last.coords, sel.coords);
+  if (!km) { banner.classList.remove('show'); return; }
+  const arr = addMins(dep, driveMins(km));
+  if (!arr) { banner.classList.remove('show'); return; }
+  document.getElementById('prev-name-'+r).textContent = sel.name + (sel.parent?' ('+sel.parent+')':'');
+  document.getElementById('prev-time-'+r).textContent = arr;
+  document.getElementById('prev-km-'+r).textContent = km.toLocaleString('tr')+' km · '+fmtDur(driveMins(km));
+  banner.classList.add('show');
+}
+
+/* ADD / REMOVE */
+function addLocation(r) {
+  const sel = selected[r];
+  if (!sel) { alert('Lütfen listeden bir yer seçin.'); return; }
+  const dateEl = document.getElementById('date-'+r);
+  const timeEl = document.getElementById('time-'+r);
+  const date = dateEl ? dateEl.value : '';
+  const time = timeEl ? timeEl.value : '';
+  routes[r].push({
+    id: Date.now(), name: sel.name, coords: sel.coords,
+    locType: sel.type, parent: sel.parent||'', date, time, stops: [],
+    _km:0, _driveMins:0, _arrTime: time||null
+  });
+  selected[r] = null;
+  calcTimeline(r);
+  renderList(r);
+  renderForm(r);
+}
+
+function removeCity(r, id) {
+  routes[r] = routes[r].filter(c => c.id !== id);
+  calcTimeline(r);
+  renderList(r);
+  renderForm(r);
+}
+
+function addStop(r, cid) {
+  const city = routes[r].find(c => c.id===cid);
+  if (!city) return;
+  const n = document.getElementById('sn-'+cid).value.trim();
+  if (!n) return;
+  const type = document.getElementById('st-'+cid).value;
+  const dur = document.getElementById('sd-'+cid).value;
+  city.stops.push({ id:Date.now(), name:n, type, duration:dur, _startTime:null, _endTime:null });
+  document.getElementById('sn-'+cid).value = '';
+  document.getElementById('sd-'+cid).value = '';
+  calcTimeline(r);
+  renderList(r);
+}
+
+function removeStop(r, cid, sid) {
+  const city = routes[r].find(c => c.id===cid);
+  if (city) city.stops = city.stops.filter(s => s.id!==sid);
+  calcTimeline(r);
+  renderList(r);
+}
+
+function updateCity(r, id, field, val) {
+  const city = routes[r].find(c => c.id===id);
+  if (!city) return;
+  city[field] = val;
+  calcTimeline(r);
+  renderList(r);
+}
+
+function updateStop(r, cid, sid, field, val) {
+  const city = routes[r].find(c => c.id===cid);
+  if (!city) return;
+  const s = city.stops.find(x => x.id===sid);
+  if (!s) return;
+  s[field] = val;
+  calcTimeline(r);
+  renderList(r);
+}
+
+/* RENDER LIST */
+function renderList(r) {
+  const el = document.getElementById('list-'+r);
+  const data = routes[r];
+  if (!data.length) { el.innerHTML = '<div class="empty-msg">Henüz yer eklenmedi.</div>'; return; }
+
+  let html = '';
+  data.forEach((city, idx) => {
+    const col = gCol(r, idx);
+    const cid = city.id;
+
+    // varış şeridi
+    if (idx > 0 && city._km > 0) {
+      html += '<div class="arr-strip">';
+      html += '<div class="tinfo">📏 '+city._km.toLocaleString('tr')+' km</div>';
+      html += '<div class="tinfo">⏱️ '+fmtDur(city._driveMins)+'</div>';
+      if (city._arrTime) html += '<div class="tinfo org">🏁 Varış: <b>'+city._arrTime+'</b></div>';
+      html += '</div>';
+    }
+
+    html += '<div class="city-card">';
+
+    // başlık
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">';
+    html += '<div style="width:26px;height:26px;border-radius:50%;background:'+col+';display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:12px;flex-shrink:0">'+(idx+1)+'</div>';
+    html += '<span style="font-size:14px;font-weight:600;flex:1">'+city.name+(city.parent?' <span style="font-size:11px;color:#888;font-weight:400">('+city.parent+')</span>':'')+'</span>';
+    html += '<span class="badge '+(city.locType==='ilçe'?'b-district':'b-city')+'">'+(city.locType==='ilçe'?'İlçe':'İl')+'</span>';
+    html += '<button class="btn btn-danger btn-sm" onclick="removeCity(\''+r+'\','+cid+')">× Kaldır</button>';
+    html += '</div>';
+
+    // tarih / varış / çıkış
+    html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">';
+    html += '<div class="fg"><label class="lbl">📅 Tarih</label><div style="display:flex;align-items:center;gap:6px"><input type="date" value="'+(city.date||'')+'" onchange="updateCity(\''+r+'\','+cid+',\'date\',this.value)" style="font-size:12px;min-width:130px"/>'+(city.date?'<span style="font-size:12px;font-weight:600;color:#2563eb;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:3px 8px;white-space:nowrap">'+dayName(city.date)+'</span>':'')+'</div></div>';
+    if (city._arrTime && idx > 0) {
+      html += '<div class="fg"><label class="lbl">🏁 Hesaplanan varış</label><div style="padding:7px 10px;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;font-size:13px;font-weight:700;color:#9a3412">'+city._arrTime+'</div></div>';
+    }
+    html += '<div class="fg"><label class="lbl">🚗 Çıkış saati</label><input type="time" value="'+(city.time||'')+'" onchange="updateCity(\''+r+'\','+cid+',\'time\',this.value)" style="font-size:12px;min-width:110px"/></div>';
+    html += '</div>';
+
+    // duraklar
+    if (city.stops.length > 0) {
+      html += '<div style="margin-bottom:8px">';
+      city.stops.forEach(s => {
+        const dur = parseFloat(s.duration) || 0;
+        const t1 = s._startTime || '';
+        const t2 = (s._endTime && s._endTime!==s._startTime) ? ' → '+s._endTime : '';
+        html += '<div style="display:flex;align-items:flex-start;gap:6px;background:#fff;border:1px solid #e5e5e0;border-radius:8px;padding:7px 9px;margin-bottom:4px;flex-wrap:wrap">';
+        html += '<span style="font-size:15px;padding-top:1px">'+sIcon(s.type)+'</span>';
+        html += '<div style="flex:1;min-width:120px">';
+        html += '<input value="'+s.name.replace(/"/g,'&quot;')+'" onchange="updateStop(\''+r+'\','+cid+','+s.id+',\'name\',this.value)" style="font-weight:500;font-size:13px;width:100%;border:1px solid #e0e0e0;border-radius:6px;padding:3px 7px;background:#fff;color:#1a1a1a"/>';
+        html += '<div style="font-size:11px;color:#888;margin-top:2px">'+t1+t2+(dur?' | '+dur+' saat':'')+'</div>';
+        html += '</div>';
+        html += '<select onchange="updateStop(\''+r+'\','+cid+','+s.id+',\'type\',this.value)" style="font-size:12px;padding:3px 6px;border-radius:6px;border:1px solid #e0e0e0;background:#fff;color:#1a1a1a">';
+        ['sight','hotel','departure','arrival'].forEach(v => {
+          html += '<option value="'+v+'"'+(s.type===v?' selected':'')+'>'+sIcon(v)+' '+sLabel(v)+'</option>';
+        });
+        html += '</select>';
+        html += '<input type="number" value="'+(s.duration||'')+'" min="0" step="0.5" placeholder="saat" onchange="updateStop(\''+r+'\','+cid+','+s.id+',\'duration\',this.value)" style="width:55px;font-size:12px;padding:3px 6px;border-radius:6px;border:1px solid #e0e0e0;background:#fff;color:#1a1a1a"/>';
+        html += '<button class="btn btn-danger btn-sm" onclick="removeStop(\''+r+'\','+cid+','+s.id+')">×</button>';
+        html += '</div>';
+      });
+      html += '</div>';
+    }
+
+    // durak ekle formu
+    html += '<div style="background:#f0f0ee;border-radius:8px;padding:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:flex-end">';
+    html += '<div class="fg" style="flex:1;min-width:140px"><label class="lbl">Durak adı</label><input type="text" id="sn-'+cid+'" placeholder="Yer / etkinlik adı"/></div>';
+    html += '<div class="fg"><label class="lbl">Tür</label><select id="st-'+cid+'">';
+    html += '<option value="sight">📍 Gezi</option><option value="hotel">🏨 Konaklama</option><option value="departure">🚗 Çıkış</option><option value="arrival">🏁 Varış</option>';
+    html += '</select></div>';
+    html += '<div class="fg" style="max-width:80px"><label class="lbl">Süre (s)</label><input type="number" id="sd-'+cid+'" min="0" step="0.5" placeholder="2"/></div>';
+    html += '<button class="btn btn-sm" onclick="addStop(\''+r+'\','+cid+')" style="margin-top:auto">+ Durak Ekle</button>';
+    html += '</div>';
+
+    html += '</div>'; // city-card
+
+    if (idx < data.length-1) html += '<div class="sep">↓</div>';
+  });
+
+  el.innerHTML = html;
+}
+
+/* RENDER FORM */
+function renderForm(r) {
+  const el = document.getElementById('form-'+r);
+  const data = routes[r];
+  const hasItems = data.length > 0;
+
+  let html = '';
+  // varış banner
+  html += '<div class="arr-banner" id="prev-banner-'+r+'">';
+  html += '<span style="font-size:20px">🏁</span>';
+  html += '<div style="flex:1;min-width:160px">';
+  html += '<div style="font-size:11px;color:#92400e;font-weight:600;text-transform:uppercase;letter-spacing:.04em">Seçilen yere tahmini varış</div>';
+  html += '<div style="font-size:11px;color:#b45309;margin-top:1px" id="prev-name-'+r+'"></div>';
+  html += '<div style="display:flex;align-items:baseline;gap:8px;margin-top:2px">';
+  html += '<span style="font-size:26px;font-weight:700;color:#9a3412;line-height:1" id="prev-time-'+r+'"></span>';
+  html += '<span style="font-size:12px;color:#b45309" id="prev-km-'+r+'"></span>';
+  html += '</div></div></div>';
+
+  // başlık
+  html += '<div style="font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.07em;margin-bottom:.75rem">';
+  html += (hasItems ? 'Sonraki Durağı Ekle' : 'İl veya İlçe Ekle') + ' — ' + (r==='go'?'Gidiş':'Dönüş');
+  html += '</div>';
+
+  // form satırı
+  html += '<div class="frow">';
+  html += '<div class="fg-grow"><label class="lbl">İl veya ilçe ara</label>';
+  html += '<div class="ac-box">';
+  html += '<input type="text" id="search-'+r+'" placeholder="Yazmaya başla… (ör: Kastamonu, Daday)" oninput="onSearch(\''+r+'\')" onkeydown="onKey(event,\''+r+'\')" autocomplete="off" style="width:100%"/>';
+  html += '<div class="ac-drop" id="dd-'+r+'"></div>';
+  html += '</div></div>';
+  html += '<div class="fg"><label class="lbl">Çıkış tarihi</label><div style="display:flex;align-items:center;gap:6px"><input type="date" id="date-'+r+'" style="min-width:130px" oninput="var d=this.value;var s=document.getElementById(\'daylbl-'+r+'\');if(s){s.textContent=d?dayName(d):\'\';s.style.display=d?\'inline\':\'none\';}" /><span id="daylbl-'+r+'" style="display:none;font-size:12px;font-weight:600;color:#2563eb;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:3px 8px;white-space:nowrap"></span></div></div>';
+  html += '<div class="fg"><label class="lbl">Çıkış saati</label><input type="time" id="time-'+r+'" style="min-width:110px"/></div>';
+  html += '<div class="fg" style="justify-content:flex-end"><button class="btn btn-primary" onclick="addLocation(\''+r+'\')" style="margin-top:auto;white-space:nowrap">+ Ekle</button></div>';
+  html += '</div>';
+
+  el.innerHTML = html;
+
+  // dropdown listener
+  const dd = document.getElementById('dd-'+r);
+  dd.addEventListener('mousedown', function(e) {
+    const item = e.target.closest('.ac-item');
+    if (!item) return;
+    e.preventDefault();
+    selectPlace(r, parseInt(item.dataset.idx));
+  });
+}
+
+/* ROUTE SWITCH */
+function rotaSwitchRoute(r) {
+  document.getElementById('tab-go').classList.toggle('active', r==='go');
+  document.getElementById('tab-back').classList.toggle('active', r==='back');
+  document.getElementById('pane-go').style.display = r==='go' ? 'block' : 'none';
+  document.getElementById('pane-back').style.display = r==='back' ? 'block' : 'none';
+}
+
+function rotaShowView(v) {
+  document.getElementById('v-editor').style.display = v==='editor' ? 'block' : 'none';
+  document.getElementById('v-map').style.display = v==='map' ? 'block' : 'none';
+  if (v==='map') { calcTimeline('go'); calcTimeline('back'); renderMapFull(); renderSummary(); renderTable(); }
+}
+
+function rotaSwitchMapTab(mode, el) {
+  curMapMode = mode;
+  document.querySelectorAll('#v-map .tabs .tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderMapFull(); renderSummary(); renderTable();
+}
+
+/* MAP */
+function pseudoRand(s) { const x=Math.sin(s+1)*10000; return x-Math.floor(x); }
+
+function makePopup(city, r, idx) {
+  let rows = '';
+  if (city.date) rows += '<div>📅 '+fmtDate(city.date)+'</div>';
+  if (city.time) rows += '<div>🚗 Çıkış: <b>'+city.time+'</b></div>';
+  if (idx>0 && city._km>0) rows += '<div>📏 <b>'+city._km.toLocaleString('tr')+' km</b> — '+fmtDur(city._driveMins)+'</div>';
+  if (city._arrTime && idx>0) rows += '<div>🏁 Varış: <b style="color:#9a3412">'+city._arrTime+'</b></div>';
+  return '<div style="font-family:sans-serif;font-size:13px;min-width:150px"><b style="font-size:14px">'+city.name+'</b>'+(city.parent?' <small style="color:#888">('+city.parent+')</small>':'')+'<div style="font-size:11px;color:#888;margin-bottom:5px">'+(city.locType==='ilçe'?'İlçe':'İl')+' · '+(r==='go'?'Gidiş':'Dönüş')+'</div>'+rows+'</div>';
+}
+
+function renderMapFull() {
+  if (rotaMapObj) { rotaMapObj.remove(); rotaMapObj=null; }
+  rotaMapObj = L.map('the-map', {zoomControl:true});
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution:'© OpenStreetMap',maxZoom:18}).addTo(rotaMapObj);
+
+  const allPts = [];
+  const doRoute = (r) => {
+    const data = routes[r];
+    const pts = data.filter(c=>c.coords).map(c=>c.coords);
+    data.forEach((city, idx) => {
+      if (!city.coords) return;
+      allPts.push(city.coords);
+      const col = gCol(r, idx);
+      const icon = L.divIcon({
+        html: '<div style="display:flex;align-items:center;gap:4px;white-space:nowrap"><div style="width:22px;height:22px;border-radius:50%;background:'+col+';display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:11px;border:2.5px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.35);flex-shrink:0">'+(idx+1)+'</div><div style="background:rgba(255,255,255,.96);border:1px solid rgba(0,0,0,.18);border-radius:5px;padding:2px 7px;font-size:12px;font-weight:700;color:#1a1a1a;box-shadow:0 1px 4px rgba(0,0,0,.13)">'+city.name+'</div></div>',
+        className:'', iconSize:[0,0], iconAnchor:[11,11]
+      });
+      L.marker(city.coords, {icon}).addTo(rotaMapObj).bindPopup(makePopup(city,r,idx), {maxWidth:260});
+
+      if (idx>0 && data[idx-1].coords && city._km>0) {
+        const prev = data[idx-1];
+        const frac = 0.55;
+        const midLat = prev.coords[0]*(1-frac) + city.coords[0]*frac;
+        const midLng = prev.coords[1]*(1-frac) + city.coords[1]*frac;
+        const goN = city.coords[0] > prev.coords[0];
+        const lbl = city._km.toLocaleString('tr')+' km · '+fmtDur(city._driveMins)+(city._arrTime?' · 🏁 '+city._arrTime:'');
+        L.marker([midLat+(goN?-0.15:0.15), midLng], {
+          icon: L.divIcon({
+            html: '<div style="background:rgba(255,255,255,.97);border:1.5px solid #f87171;border-radius:7px;padding:4px 9px;font-size:12px;font-weight:700;color:#991b1b;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.15);transform:translateX(-50%)">'+lbl+'</div>',
+            className:'', iconAnchor:[0,0]
+          }), interactive:false
+        }).addTo(rotaMapObj);
+      }
+
+      city.stops.forEach((s, si) => {
+        const sid = (r==='go'?0:500)+idx*20+si;
+        const sc = [city.coords[0]+(pseudoRand(sid)-.5)*.12, city.coords[1]+(pseudoRand(sid+7)-.5)*.12];
+        allPts.push(sc);
+        const sc2 = s.type==='hotel'?'#0891b2':(s.type==='departure'||s.type==='arrival')?'#ea580c':'#16a34a';
+        const dur = parseFloat(s.duration);
+        const t1 = s._startTime||'';
+        const t2 = (s._endTime && s._endTime!==s._startTime) ? ' → '+s._endTime : '';
+        L.marker(sc, {icon: L.divIcon({
+          html:'<div style="width:22px;height:22px;border-radius:50%;background:'+sc2+';display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;border:2px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.2)">'+sIcon(s.type)+'</div>',
+          className:'', iconSize:[22,22], iconAnchor:[11,11]
+        })}).addTo(rotaMapObj).bindPopup(
+          '<div style="font-size:13px;font-family:sans-serif"><b>'+s.name+'</b><br><small style="color:#888">'+sLabel(s.type)+'</small>'+(t1?'<br>⏰ '+t1+t2:'')+(dur?'<br>⏳ '+dur+' saat':'')+'</div>', {maxWidth:200}
+        );
+      });
+    });
+    if (pts.length>=2) L.polyline(pts, {color:r==='go'?'#7c3aed':'#db2777', weight:3.5, opacity:.75, dashArray:'9 5'}).addTo(rotaMapObj);
+  };
+  if (curMapMode==='both'||curMapMode==='go') doRoute('go');
+  if (curMapMode==='both'||curMapMode==='back') doRoute('back');
+  if (allPts.length) rotaMapObj.fitBounds(allPts, {padding:[50,50]});
+  else rotaMapObj.setView([39,35], 6);
+}
+
+/* SUMMARY */
+function renderSummary() {
+  let goKm=0,backKm=0,goMins=0,backMins=0,stops=0,hotels=0;
+  routes.go.forEach((c,i)=>{ if(i>0){goKm+=c._km||0;goMins+=c._driveMins||0;} });
+  routes.back.forEach((c,i)=>{ if(i>0){backKm+=c._km||0;backMins+=c._driveMins||0;} });
+  [...routes.go,...routes.back].forEach(c=>{ stops+=c.stops.length; hotels+=c.stops.filter(s=>s.type==='hotel').length; });
+  document.getElementById('sum-bar').innerHTML =
+    '<div class="sum-card"><div class="sum-label">Gidiş noktaları</div><div class="sum-val" style="color:#7c3aed">'+routes.go.length+'</div></div>'+
+    '<div class="sum-card"><div class="sum-label">Dönüş noktaları</div><div class="sum-val" style="color:#db2777">'+routes.back.length+'</div></div>'+
+    '<div class="sum-card"><div class="sum-label">Gidiş mesafe</div><div class="sum-val">'+goKm.toLocaleString('tr')+' km</div></div>'+
+    '<div class="sum-card"><div class="sum-label">Gidiş sürüş</div><div class="sum-val">'+fmtDur(goMins)+'</div></div>'+
+    '<div class="sum-card"><div class="sum-label">Dönüş mesafe</div><div class="sum-val">'+backKm.toLocaleString('tr')+' km</div></div>'+
+    '<div class="sum-card"><div class="sum-label">Dönüş sürüş</div><div class="sum-val">'+fmtDur(backMins)+'</div></div>'+
+    '<div class="sum-card"><div class="sum-label">Toplam durak</div><div class="sum-val">'+stops+'</div></div>'+
+    '<div class="sum-card"><div class="sum-label">Konaklama</div><div class="sum-val">'+hotels+'</div></div>';
+}
+
+/* TABLE */
+function renderTable() {
+  const buildSegments = (r) => {
+    if (curMapMode!=='both' && curMapMode!==r) return '';
+    const data = routes[r];
+    if (!data.length) return '';
+    const routeColor = r==='go' ? '#7c3aed' : '#db2777';
+    const routeLabel = r==='go' ? '➡️ Gidiş' : '⬅️ Dönüş';
+    let html = '<div style="margin-bottom:1rem">';
+    html += '<div style="font-size:11px;font-weight:700;color:'+routeColor+';text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;padding:4px 10px;background:'+(r==='go'?'#ede9fe':'#fce7f3')+';border-radius:6px;display:inline-block">'+routeLabel+'</div>';
+
+    data.forEach((city, idx) => {
+      const col = gCol(r, idx);
+      // Başlangıç noktası — sadece ilk kart
+      if (idx === 0) {
+        html += '<div style="display:flex;align-items:stretch;gap:0;margin-bottom:6px">';
+        // Sol: numara + çizgi
+        html += '<div style="display:flex;flex-direction:column;align-items:center;width:36px;flex-shrink:0">';
+        html += '<div style="width:26px;height:26px;border-radius:50%;background:'+col+';display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:12px;flex-shrink:0;z-index:1">1</div>';
+        html += '<div style="flex:1;width:2px;background:#e5e5e0;margin:2px 0"></div>';
+        html += '</div>';
+        // Sağ: bilgi
+        html += '<div style="flex:1;padding:4px 0 8px 10px">';
+        html += '<div style="font-size:14px;font-weight:700;color:#1a1a1a">'+city.name+(city.parent?' <span style="font-size:11px;color:#888;font-weight:400">('+city.parent+')</span>':'')+'</div>';
+        html += '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px">';
+        if (city.date) html += '<span style="font-size:12px;color:#555">📅 '+fmtDate(city.date)+'</span>';
+        if (city.time) html += '<span style="font-size:12px;font-weight:600;color:#555">🚗 Çıkış: '+city.time+'</span>';
+        html += '</div>';
+        // Duraklar
+        city.stops.forEach(s => {
+          const t1=s._startTime||''; const t2=(s._endTime&&s._endTime!==s._startTime)?' → '+s._endTime:'';
+          html += '<div style="margin-top:5px;display:flex;align-items:center;gap:6px;font-size:12px;color:#555;padding:3px 8px;background:#f5f5f0;border-radius:6px">';
+          html += sIcon(s.type)+' <b>'+s.name+'</b>';
+          if (t1) html += '<span style="color:#888">'+t1+t2+'</span>';
+          if (parseFloat(s.duration)) html += '<span style="color:#888">'+s.duration+' saat</span>';
+          html += '</div>';
+        });
+        html += '</div></div>';
+      }
+
+      // Segment bilgisi (idx > 0)
+      if (idx > 0) {
+        const prev = data[idx-1];
+        // Çıkış saatini hesapla
+        let depTime = prev.time || null;
+        if (!depTime) {
+          depTime = prev._arrTime;
+          prev.stops.forEach(s => { const d=parseFloat(s.duration)||0; if(depTime&&d>0) depTime=addMins(depTime,d*60); });
+        }
+
+        // Segment kartı — yatay bilgi şeridi
+        html += '<div style="margin:0 0 4px 18px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:#fff;border:1px solid #e5e5e0;border-radius:10px;padding:8px 12px">';
+
+        // Çıkış
+        html += '<div style="display:flex;flex-direction:column;align-items:flex-start;min-width:110px;max-width:160px">';
+        html += '<div style="font-size:10px;color:#888;font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">Çıkış</div>';
+        html += '<div style="font-size:20px;font-weight:700;color:#1a1a1a;line-height:1.1">'+(depTime||'—')+'</div>';
+        html += '<div style="font-size:12px;font-weight:600;color:#444;margin-top:2px">'+prev.name+(prev.parent?' ('+prev.parent+')':'')+'</div>';
+        html += '</div>';
+
+        // Ok + mesafe + süre
+        html += '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:110px;padding:0 4px">';
+        html += '<div style="font-size:12px;font-weight:700;color:#991b1b">'+(city._km>0?city._km.toLocaleString('tr')+' km':'')+'</div>';
+        html += '<div style="width:100%;display:flex;align-items:center;gap:0">';
+        html += '<div style="flex:1;height:2.5px;background:'+col+';border-radius:2px"></div>';
+        html += '<div style="color:'+col+';font-size:16px;line-height:1;margin-left:-2px">▶</div>';
+        html += '</div>';
+        html += '<div style="font-size:12px;font-weight:700;color:#991b1b">'+(city._driveMins>0?fmtDur(city._driveMins):'')+'</div>';
+        html += '</div>';
+
+        // Varış
+        html += '<div style="display:flex;flex-direction:column;align-items:flex-end;min-width:110px;max-width:160px">';
+        html += '<div style="font-size:10px;color:#888;font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">Varış</div>';
+        html += '<div style="font-size:20px;font-weight:700;color:#9a3412;line-height:1.1">'+(city._arrTime||'—')+'</div>';
+        html += '<div style="font-size:12px;font-weight:600;color:#444;margin-top:2px;text-align:right">'+city.name+(city.parent?' ('+city.parent+')':'')+'</div>';
+        html += '</div>';
+
+        html += '</div>';
+
+        // Durak noktası
+        html += '<div style="display:flex;align-items:stretch;gap:0;margin-bottom:6px">';
+        html += '<div style="display:flex;flex-direction:column;align-items:center;width:36px;flex-shrink:0">';
+        html += '<div style="width:26px;height:26px;border-radius:50%;background:'+col+';display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:12px;z-index:1">'+(idx+1)+'</div>';
+        if (idx < data.length-1) html += '<div style="flex:1;width:2px;background:#e5e5e0;margin:2px 0"></div>';
+        html += '</div>';
+        html += '<div style="flex:1;padding:4px 0 8px 10px">';
+        html += '<div style="font-size:14px;font-weight:700;color:#1a1a1a">'+city.name+(city.parent?' <span style="font-size:11px;color:#888;font-weight:400">('+city.parent+')</span>':'')+'</div>';
+        html += '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px">';
+        if (city.date) html += '<span style="font-size:12px;color:#555">📅 '+fmtDate(city.date)+'</span>';
+        if (city._arrTime) html += '<span style="font-size:12px;font-weight:600;color:#9a3412">🏁 Varış: '+city._arrTime+'</span>';
+        if (city.time) html += '<span style="font-size:12px;font-weight:600;color:#555">🚗 Çıkış: '+city.time+'</span>';
+        html += '</div>';
+        // Duraklar
+        city.stops.forEach(s => {
+          const t1=s._startTime||''; const t2=(s._endTime&&s._endTime!==s._startTime)?' → '+s._endTime:'';
+          html += '<div style="margin-top:5px;display:flex;align-items:center;gap:6px;font-size:12px;color:#555;padding:3px 8px;background:#f5f5f0;border-radius:6px">';
+          html += sIcon(s.type)+' <b>'+s.name+'</b>';
+          if (t1) html += '<span style="color:#888">'+t1+t2+'</span>';
+          if (parseFloat(s.duration)) html += '<span style="color:#888">'+s.duration+' saat</span>';
+          html += '</div>';
+        });
+        html += '</div></div>';
+      }
+    });
+
+    html += '</div>';
+    return html;
+  };
+
+  document.getElementById('rtable').innerHTML =
+    buildSegments('go') + buildSegments('back') ||
+    '<div style="text-align:center;padding:2rem;color:#bbb;font-size:13px">Henüz rota eklenmedi.</div>';
+}
+
+/* INIT */
+renderList('go');
+renderList('back');
+renderForm('go');
+renderForm('back');
+
+document.addEventListener('click', e => {
+  ['go','back'].forEach(r => {
+    const dd = document.getElementById('dd-'+r);
+    const inp = document.getElementById('search-'+r);
+    if (dd && inp && !dd.contains(e.target) && e.target!==inp) dd.style.display='none';
+  });
+});
+
+document.getElementById('avg-speed').addEventListener('change', () => {
+  calcTimeline('go'); calcTimeline('back');
+  renderList('go'); renderList('back');
+});
+
+/* ── EXCEL EXPORT ── */
+async function exportExcel(){
+  const btn=document.getElementById('excel-btn');
+  btn.textContent='⏳ Hazırlanıyor...';btn.disabled=true;
+
+  // Harita görselini al
+  let mapImgBase64=null;
+  const mapEl=document.getElementById('the-map');
+  if(mapEl&&rotaMapObj){
+    try{
+      // Harita görünür değilse geçici göster
+      const mapView=document.getElementById('v-map');
+      const wasHidden=mapView.style.display==='none';
+      if(wasHidden){mapView.style.display='block';}
+      await new Promise(r=>setTimeout(r,400));
+      const canvas=await html2canvas(mapEl,{useCORS:true,allowTaint:true,scale:1.5,logging:false});
+      mapImgBase64=canvas.toDataURL('image/jpeg',0.85).split(',')[1];
+      if(wasHidden){mapView.style.display='none';}
+    }catch(e){console.warn('Harita görseli alınamadı:',e);}
+  }
+
+  // Rota verilerini topla
+  const rows=[];
+  const pushRoute=(r,label)=>{
+    const data=routes[r];
+    data.forEach((city,idx)=>{
+      // Önceki noktanın çıkış saati
+      let depCity=null;
+      let depName=null;
+      if(idx>0){
+        const prev=data[idx-1];
+        depName=prev.name+(prev.parent?' ('+prev.parent+')':'');
+        depCity=prev.time||null;
+        if(!depCity){
+          let t=prev._arrTime;
+          prev.stops.forEach(s=>{const d=parseFloat(s.duration)||0;if(t&&d>0)t=addMinutes(t,d*60);});
+          depCity=t;
+        }
+      }
+      rows.push({
+        rota:label,
+        sira:idx+1,
+        cikisBolge:idx>0?depName:'—',
+        cikisSaati:idx>0?(depCity||'—'):'—',
+        varisBolge:city.name+(city.parent?' ('+city.parent+')':''),
+        varisSaati:idx>0?(city._arrTime||'—'):'— (Başlangıç)',
+        mesafe:idx>0&&city._km>0?city._km:'—',
+        sure:idx>0&&city._driveMins>0?fmtDur(city._driveMins):'—',
+        tarih:city.date?fmtDate(city.date):'—',
+        tip:city.locType==='ilçe'?'İlçe':'İl',
+        notlar:city.stops.map(s=>stopIcon(s.type)+' '+s.name+(s.duration?' ('+s.duration+'s)':'')).join(' | ')||'—'
+      });
+    });
+  };
+  pushRoute('go','Gidiş');
+  pushRoute('back','Dönüş');
+
+  // XML tabanlı XLSX oluştur
+  const colWidths=[8,5,22,12,22,16,10,10,12,7,40];
+  const headers=['Rota','Sıra','Çıkış Yeri','Çıkış Saati','Varış Yeri','Varış Saati','Mesafe (km)','Süre','Tarih','Tip','Duraklar / Notlar'];
+
+  let sharedStrings=[];
+  const ss=v=>{const i=sharedStrings.indexOf(v);if(i>=0)return i;sharedStrings.push(v);return sharedStrings.length-1;};
+
+  const cellRef=(r,c)=>{const col=String.fromCharCode(64+c);return col+r;};
+
+  // Satırları XML'e dönüştür
+  let sheetRows='';
+  // Başlık satırı (satır 1)
+  sheetRows+='<row r="1">';
+  headers.forEach((h,ci)=>{
+    sheetRows+=`<c r="${cellRef(1,ci+1)}" t="s" s="2"><v>${ss(h)}</v></c>`;
+  });
+  sheetRows+='</row>';
+
+  // Veri satırları
+  rows.forEach((row,ri)=>{
+    const rowNum=ri+2;
+    const vals=[row.rota,String(row.sira),row.cikisBolge,row.cikisSaati,row.varisBolge,row.varisSaati,
+      typeof row.mesafe==='number'?null:row.mesafe, row.sure, row.tarih, row.tip, row.notlar];
+    const isGo=row.rota==='Gidiş';
+    sheetRows+=`<row r="${rowNum}">`;
+    vals.forEach((v,ci)=>{
+      const col=ci+1;
+      if(ci===6&&typeof row.mesafe==='number'){
+        // km sayısal
+        sheetRows+=`<c r="${cellRef(rowNum,col)}" s="${isGo?3:4}"><v>${row.mesafe}</v></c>`;
+      } else {
+        sheetRows+=`<c r="${cellRef(rowNum,col)}" t="s" s="${isGo?3:4}"><v>${ss(String(v||'—'))}</v></c>`;
+      }
+    });
+    sheetRows+='</row>';
+  });
+
+  // Harita resim satırı — sadece veri, gerçek resim embed için Drawing gerekir
+  // Basit yaklaşım: resmi ayrı sheet'e koymak yerine notlar sütununa URL yaz
+  const imgRowNum=rows.length+3;
+  sheetRows+=`<row r="${imgRowNum}"><c r="A${imgRowNum}" t="s" s="2"><v>${ss('🗺️ Harita görselini aşağıdan indirin — haritayı ekrana açık iken tarayıcının ekran görüntüsü alın')}</v></c></row>`;
+
+  // Col widths
+  let colsXml='<cols>';
+  colWidths.forEach((w,i)=>colsXml+=`<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`);
+  colsXml+='</cols>';
+
+  // Shared strings XML
+  // Shared strings XML
+  const ssItems=sharedStrings.map(function(s){return '<si><t xml:space="preserve">'+s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')+'</t></si>';}).join('\n');
+  const ssXml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="'+sharedStrings.length+'" uniqueCount="'+sharedStrings.length+'">\n'+ssItems+'\n</sst>';
+
+
+  // Styles XML
+  const stylesXml=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <fonts><font><sz val="11"/><name val="Arial"/></font><font><b/><sz val="11"/><name val="Arial"/></font></fonts>
+  <fills><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>
+    <fill><patternFill patternType="solid"><fgColor rgb="FF1D6F42"/></patternFill></fill>
+    <fill><patternFill patternType="solid"><fgColor rgb="FFEDE9FE"/></patternFill></fill>
+    <fill><patternFill patternType="solid"><fgColor rgb="FFFCE7F3"/></patternFill></fill>
+  </fills>
+  <borders><border><left/><right/><top/><bottom/><diagonal/></border>
+    <border><left style="thin"><color rgb="FFD0D0D0"/></left><right style="thin"><color rgb="FFD0D0D0"/></right><top style="thin"><color rgb="FFD0D0D0"/></top><bottom style="thin"><color rgb="FFD0D0D0"/></bottom><diagonal/></border>
+  </borders>
+  <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
+  <cellXfs>
+    <xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1"/>
+    <xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>
+    <xf numFmtId="0" fontId="0" fillId="3" borderId="1" xfId="0" applyFill="1" applyBorder="1"><alignment wrapText="1"/></xf>
+    <xf numFmtId="0" fontId="0" fillId="4" borderId="1" xfId="0" applyFill="1" applyBorder="1"><alignment wrapText="1"/></xf>
+  </cellXfs>
+</styleSheet>`;
+
+  // Sheet XML
+  const sheetXml=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <sheetViews><sheetView workbookViewId="0"><selection activeCell="A1"/></sheetView></sheetViews>
+  <sheetFormatPr defaultRowHeight="18" customHeight="1"/>
+  ${colsXml}
+  <sheetData>${sheetRows}</sheetData>
+  <pageSetup orientation="landscape" fitToPage="1" fitToWidth="1" fitToHeight="0"/>
+</worksheet>`;
+
+  // Workbook XML
+  const wbXml=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <sheets><sheet name="Gezi Rotası" sheetId="1" r:id="rId1"/></sheets>
+</workbook>`;
+
+  const relsXml=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/>
+  <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+</Relationships>`;
+
+  const appRelsXml=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+</Relationships>`;
+
+  const contentTypesXml=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+  <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+  <Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/>
+  <Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
+</Types>`;
+
+  // JSZip ile zip oluştur
+  const loadJSZip=()=>new Promise((res,rej)=>{
+    if(window.JSZip)return res(window.JSZip);
+    const s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+    s.onload=()=>res(window.JSZip);s.onerror=rej;
+    document.head.appendChild(s);
+  });
+
+  try{
+    const JSZip=await loadJSZip();
+    const zip=new JSZip();
+    // Harita sheet'i için drawing & media yapısı
+    let sheet2Id='', haritaFiles={};
+    if(mapImgBase64){
+      const byteChars=atob(mapImgBase64);
+      const byteNums=new Uint8Array(byteChars.length);
+      for(let i=0;i<byteChars.length;i++)byteNums[i]=byteChars.charCodeAt(i);
+
+      const imgW=1400,imgH=700; // EMU: piksel × 9525
+      const emuW=imgW*9525, emuH=imgH*9525;
+
+      const drawingXml=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <xdr:absoluteAnchor><xdr:pos x="0" y="0"/><xdr:ext cx="${emuW}" cy="${emuH}"/>
+    <xdr:pic><xdr:nvPicPr><xdr:cNvPr id="2" name="Harita"/><xdr:cNvPicPr/></xdr:nvPicPr>
+      <xdr:blipFill><a:blip r:embed="rId1"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill>
+      <xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${emuW}" cy="${emuH}"/></a:xfrm>
+        <a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr>
+    </xdr:pic><xdr:clientData/>
+  </xdr:absoluteAnchor>
+</xdr:wsDr>`;
+
+      const drawingRelsXml=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/harita.jpg"/>
+</Relationships>`;
+
+      const sheet2Xml=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <sheetViews><sheetView workbookViewId="0"/></sheetViews>
+  <sheetData><row r="1"><c r="A1" t="s" s="2"><v>${ss('🗺️ Harita')}</v></c></row></sheetData>
+  <drawing r:id="rId1"/>
+</worksheet>`;
+
+      haritaFiles={
+        'xl/worksheets/sheet2.xml': sheet2Xml,
+        'xl/drawings/drawing1.xml': drawingXml,
+        'xl/drawings/_rels/drawing1.xml.rels': drawingRelsXml,
+        'xl/media/harita.jpg': byteNums
+      };
+      sheet2Id='<sheet name="Harita" sheetId="2" r:id="rId4"/>';
+    }
+
+    // Content Types & Workbook & Rels güncel hali
+    const ct2=mapImgBase64?`
+  <Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+  <Override PartName="/xl/drawings/drawing1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>
+  <Default Extension="jpg" ContentType="image/jpeg"/>`:'';
+
+    const finalCT=contentTypesXml.replace('</Types>',ct2+'</Types>');
+    const finalWB=wbXml.replace('</sheets>',sheet2Id+'</sheets>');
+    const finalRels=relsXml.replace('</Relationships>',
+      (mapImgBase64?'<Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet2.xml"/>':'')+'</Relationships>');
+
+    const sheet1RelsXml=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+</Relationships>`;
+
+    zip.file('[Content_Types].xml',finalCT);
+    zip.file('_rels/.rels',appRelsXml);
+    zip.file('xl/workbook.xml',finalWB);
+    zip.file('xl/_rels/workbook.xml.rels',finalRels);
+    zip.file('xl/worksheets/sheet1.xml',sheetXml);
+    zip.file('xl/worksheets/_rels/sheet1.xml.rels',sheet1RelsXml);
+    zip.file('xl/sharedStrings.xml',ssXml);
+    zip.file('xl/styles.xml',stylesXml);
+
+    if(mapImgBase64){
+      zip.file('xl/worksheets/sheet2.xml',haritaFiles['xl/worksheets/sheet2.xml']);
+      zip.file('xl/drawings/drawing1.xml',haritaFiles['xl/drawings/drawing1.xml']);
+      zip.file('xl/drawings/_rels/drawing1.xml.rels',haritaFiles['xl/drawings/_rels/drawing1.xml.rels']);
+      zip.file('xl/media/harita.jpg',haritaFiles['xl/media/harita.jpg']);
+      // sheet2 için drawing rel
+      zip.file('xl/worksheets/_rels/sheet2.xml.rels',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing1.xml"/>
+</Relationships>`);
+    }
+
+    const blob=await zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    const now=new Date();
+    a.download=`gezi-rotasi-${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}.xlsx`;
+    a.click();
+    setTimeout(()=>URL.revokeObjectURL(url),5000);
+  }catch(e){
+    alert('Excel oluşturulurken hata: '+e.message);
+  }
+
+  btn.textContent='📊 Excel\u2019e Aktar';btn.disabled=false;
+}
+
+
 // ━━━━━━━━━━━━━━━━━━━━━━━━
 // TEMA
 // ━━━━━━━━━━━━━━━━━━━━━━━━
@@ -2701,6 +4011,7 @@ function goTabByName(name) {
   if(name==='ayarlar') renderSettings();
   if(name==='butce') renderButce();
   if(name==='oyun') initOyun();
+  if(name==='rota') initRota();
   if(name==='yerler') renderYerler();
 }
 
@@ -2712,6 +4023,7 @@ function goTab(name,btn){
   if(name==='ozet') renderSummary();
   if(name==='butce') renderButce();
   if(name==='oyun') initOyun();
+  if(name==='rota') initRota();
   if(name==='guzergah') renderPlaces();
   if(name==='notlar') renderNotes();
   if(name==='ayarlar') renderSettings();
