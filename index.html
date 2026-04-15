@@ -3474,14 +3474,14 @@ function rotaSwitchRoute(r) {
 function rotaShowView(v) {
   document.getElementById('v-editor').style.display = v==='editor' ? 'block' : 'none';
   document.getElementById('v-map').style.display = v==='map' ? 'block' : 'none';
-  if (v==='map') { calcTimeline('go'); calcTimeline('back'); renderMapFull(); renderSummary(); renderTable(); }
+  if (v==='map') { calcTimeline('go'); calcTimeline('back'); renderMapFull(); rotaRenderSummary(); renderTable(); }
 }
 
 function rotaSwitchMapTab(mode, el) {
   curMapMode = mode;
   document.querySelectorAll('#v-map .tabs .tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
-  renderMapFull(); renderSummary(); renderTable();
+  renderMapFull(); rotaRenderSummary(); renderTable();
 }
 
 /* MAP */
@@ -3555,12 +3555,14 @@ function renderMapFull() {
 }
 
 /* SUMMARY */
-function renderSummary() {
+function rotaRenderSummary() {
   let goKm=0,backKm=0,goMins=0,backMins=0,stops=0,hotels=0;
   routes.go.forEach((c,i)=>{ if(i>0){goKm+=c._km||0;goMins+=c._driveMins||0;} });
   routes.back.forEach((c,i)=>{ if(i>0){backKm+=c._km||0;backMins+=c._driveMins||0;} });
   [...routes.go,...routes.back].forEach(c=>{ stops+=c.stops.length; hotels+=c.stops.filter(s=>s.type==='hotel').length; });
-  document.getElementById('sum-bar').innerHTML =
+  const el = document.getElementById('sum-bar');
+  if(!el) return;
+  el.innerHTML =
     '<div class="sum-card"><div class="sum-label">Gidiş noktaları</div><div class="sum-val" style="color:#7c3aed">'+routes.go.length+'</div></div>'+
     '<div class="sum-card"><div class="sum-label">Dönüş noktaları</div><div class="sum-val" style="color:#db2777">'+routes.back.length+'</div></div>'+
     '<div class="sum-card"><div class="sum-label">Gidiş mesafe</div><div class="sum-val">'+goKm.toLocaleString('tr')+' km</div></div>'+
