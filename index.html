@@ -565,6 +565,8 @@ async function createTrip() {
     const rows = await sbPost('katilimcilar',{trip_id:tripId, isim:name, email, session_id:sessionId, iban:'', rol:'admin', durum:'onaylandi'});
     mySession = {name, email, sessionId, tripId, katilimciId:rows[0].id, iban:'', rol:'admin', durum:'onaylandi'};
     localStorage.setItem('mySession', JSON.stringify(mySession));
+    localStorage.setItem('lastEmail', email);
+    localStorage.setItem('lastName', name);
     document.getElementById('welcomeScreen').style.display='none';
     document.getElementById('app').style.display='block';
     await loadAll();
@@ -610,6 +612,9 @@ async function joinTrip() {
     }
     mySession = {name, email, sessionId, tripId:trip.id, katilimciId, iban, rol, durum};
     localStorage.setItem('mySession', JSON.stringify(mySession));
+    localStorage.setItem('lastEmail', email);
+    localStorage.setItem('lastName', name);
+    localStorage.setItem('lastCode', code);
     document.getElementById('welcomeScreen').style.display='none';
     // Durum kontrolü burada yap
     if(durum === 'engellendi') {
@@ -2907,6 +2912,13 @@ Ayarlar sekmesinden onaylayın.`));
 (async()=>{
   // Temayı yükle
   loadTema();
+  // Kayıtlı mail ve kodu doldur
+  const savedEmail = localStorage.getItem('lastEmail');
+  const savedName = localStorage.getItem('lastName');
+  const savedCode = localStorage.getItem('lastCode');
+  if(savedEmail) document.getElementById('wEmail').value = savedEmail;
+  if(savedName) document.getElementById('wName').value = savedName;
+  if(savedCode) document.getElementById('wCode').value = savedCode;
   // Daha önce giriş yaptı mı?
   const saved=localStorage.getItem('mySession');
   if(saved){
