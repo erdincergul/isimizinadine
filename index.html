@@ -1536,12 +1536,12 @@ async function delFoto(id, dosyaYolu) {
 let butce = {};
 
 const BUTCE_KATEGORILER = [
-  {key:'yemek',  label:'🍽️ Yemek',      cats:['🍽️ Yemek','☕ Kafe','📦 Diğer']},
-  {key:'yol',    label:'⛽ Yol/Yakıt',   cats:['⛽ Akaryakıt','🅿️ Park/Otoban']},
-  {key:'konaklama', label:'🏨 Konaklama', cats:['🏨 Konaklama']},
-  {key:'aktivite',  label:'🎟️ Aktivite',  cats:['🎟️ Aktivite']},
-  {key:'market', label:'🛒 Market',      cats:['🛒 Market']},
-  {key:'diger',  label:'📦 Diğer',       cats:[]},
+  {key:'yemek',    label:'🍽️ Yemek',      cats:['🍽️ Yemek','☕ Kafe']},
+  {key:'yol',      label:'⛽ Yol/Yakıt',   cats:['⛽ Akaryakıt','🅿️ Park/Otoban']},
+  {key:'konaklama',label:'🏨 Konaklama',   cats:['🏨 Konaklama']},
+  {key:'aktivite', label:'🎟️ Aktivite',    cats:['🎟️ Aktivite']},
+  {key:'market',   label:'🛒 Market',      cats:['🛒 Market']},
+  {key:'diger',    label:'📦 Diğer',       cats:['📦 Diğer']},
 ];
 
 async function loadButce() {
@@ -1565,12 +1565,9 @@ function renderButceDurum() {
   const toplamHarcama = ortakMasraf.reduce((s,e)=>s+e.amount,0);
   const toplamKalan = toplamButce - toplamHarcama;
 
-  // Kategori masraf eşleştirme
+  // Kategori masraf eşleştirme - tam eşleşme
   function getKatMasraf(k) {
-    if(k.cats.length===0) {
-      return ortakMasraf.filter(e => !BUTCE_KATEGORILER.slice(0,-1).some(ok => ok.cats.some(c => e.cat===c)));
-    }
-    return ortakMasraf.filter(e => k.cats.some(c => e.cat===c));
+    return ortakMasraf.filter(e => k.cats.some(c => e.cat === c));
   }
 
   let html = '';
