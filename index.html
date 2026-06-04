@@ -295,8 +295,8 @@ input::placeholder,textarea::placeholder{color:var(--mut)}
       <div class="ctitle">💰 Genel Özet</div>
       <div class="total-box">
         <div class="t-lbl">Toplam Ortak Harcama</div>
-        <div class="t-amt" id="sumTotal">₺0,00</div>
-        <div class="t-per">Kişi başı: <b id="sumPer" style="color:var(--txt)">₺0,00</b></div>
+        <div class="t-amt" id="sumTotal">-</div>
+        <div class="t-per" id="sumPer"></div>
       </div>
       <div id="personRows"></div>
     </div>
@@ -821,75 +821,135 @@ function renderSummary() {
   const aktifK = katilimcilar.filter(k=>k.durum!=='engellendi');
   const ortakMasraf = masraflar.filter(e=>!e.sahsi);
   const n = aktifK.length || 1;
-  const total = ortakMasraf.reduce((s,e)=>s+e.amount,0);
-  const per = total/n; // Eşit bölünme referansı için
 
-  document.getElementById('sumTotal').textContent = fmtPara(total);
-  document.getElementById('sumPer').textContent = '₺'+fmt(per)+' ('+n+' kişi)';
+  // Döviz bazında grupla
+  const dovizGruplari = {};
+  ortakMasraf.forEach(e=>{
+    const pb = e.para_birimi||'TRY';
+    if(!dovizGruplari[pb]) dovizGruplari[pb]=[];
+    dovizGruplari[pb].push(e);
+  });
 
-  // Her kişinin ödediği (ortak) ve bölüştürme payı
-  const paid = aktifK.map(k=>ortakMasraf.filter(e=>e.katilimci_id===k.id).reduce((s,e)=>s+e.amount,0));
-  // Kişi başına düşen pay - bölüşen kişi sayısına göre
-  const kisiPay = aktifK.map((k,i)=>{
-    return ortakMasraf.reduce((s,e)=>{
-      const bolusturen = e.bolusturen && e.bolusturen.length>0 ? e.bolusturen : aktifK.map(x=>x.id);
-      if(bolusturen.includes(k.id)) return s + e.amount/bolusturen.length;
-      return s;
-    },0);
+  // Toplam kutusu - döviz bazında
+  const toplamlar = Object.entries(dovizGruplari).map(([pb,list])=>{
+    const total = list.reduce((s,e)=>s+e.amount,0);
+    const semb = PARA_BIRIMLERI.find(p=>p.kod===pb)?.sembol||pb;
+    const per = total/n;
+    return {pb, semb, total, per};
+  });
+
+  // Toplam göster
+  const toplamStr = toplamlar.length
+    ? toplamlar.map(t=>`<div style="font-family:'DM Mono',monospace;font-size:24px;color:var(--acc);font-weight:700">${t.semb}${fmt(t.total)}</div><div style="font-size:11px;color:var(--mut)">Kişi başı: ${t.semb}${fmt(t.per)}</div>`).join('<div style="height:6px"></div>')
+    : `<div class="t-amt">-</div>`;
+
+  document.getElementById('sumTotal').innerHTML = toplamStr;
+  document.getElementById('sumPer').textContent = '';
+
+  // Kişi başı ödeme - sadece aynı döviz içinde hesapla
+  const paid = aktifK.map(k=>{
+    const byPb = {};
+    ortakMasraf.filter(e=>e.katilimci_id===k.id).forEach(e=>{
+      const pb = e.para_birimi||'TRY';
+      byPb[pb] = (byPb[pb]||0)+e.amount;
+    });
+    return byPb;
+  });
+
+  // Kişi payı - döviz bazında
+  const kisiPay = aktifK.map(k=>{
+    const byPb = {};
+    ortakMasraf.forEach(e=>{
+      const pb = e.para_birimi||'TRY';
+      const bolusturen = e.bolusturen&&e.bolusturen.length>0 ? e.bolusturen : aktifK.map(x=>x.id);
+      if(bolusturen.includes(k.id)) byPb[pb] = (byPb[pb]||0) + e.amount/bolusturen.length;
+    });
+    return byPb;
+  });
+
+  // Bakiye - döviz bazında
+  const balances = aktifK.map((k,i)=>{
+    const bal = {};
+    const paidK = paid[i]; const payK = kisiPay[i];
+    const tumPb = new Set([...Object.keys(paidK), ...Object.keys(payK)]);
+    tumPb.forEach(pb=>{ bal[pb] = (paidK[pb]||0)-(payK[pb]||0); });
+    return {i,k,bal};
   });
 
   document.getElementById('personRows').innerHTML = aktifK.map((k,i)=>{
-    const bal=paid[i]-per;
-    const cc=bal>0.009?'chip-pos':bal<-0.009?'chip-neg':'chip-zero';
-    const ct=bal>0.009?`+${fmtPara(bal)} alacaklı`:bal<-0.009?`-${fmtPara(Math.abs(bal))} borçlu`:'dengede';
+    const paidStr = Object.entries(paid[i]).map(([pb,amt])=>{
+      const semb = PARA_BIRIMLERI.find(p=>p.kod===pb)?.sembol||pb;
+      return `${semb}${fmt(amt)}`;
+    }).join(' + ') || '0';
+
+    const balEntries = Object.entries(balances[i].bal).filter(([pb,b])=>Math.abs(b)>0.009);
+    const balStr = balEntries.length
+      ? balEntries.map(([pb,b])=>{
+          const semb = PARA_BIRIMLERI.find(p=>p.kod===pb)?.sembol||pb;
+          return b>0 ? `+${semb}${fmt(b)} alacaklı` : `-${semb}${fmt(Math.abs(b))} borçlu`;
+        }).join(' ')
+      : 'dengede';
+    const hasPos = balEntries.some(([pb,b])=>b>0.009);
+    const hasNeg = balEntries.some(([pb,b])=>b<-0.009);
+    const cc = hasPos?'chip-pos':hasNeg?'chip-neg':'chip-zero';
+
     return `<div class="prow" onclick="togglePersonDetail(${i})">
       <div style="width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;background:${getBg(i)};color:${getColor(i)}">${getInitial(k.isim)}</div>
-      <div style="flex:1"><div style="font-size:13px;font-weight:700">${k.isim}</div><div style="font-size:10px;color:var(--mut);font-family:'DM Mono',monospace">Ödedi: ${fmtPara(paid[i])}</div></div>
-      <div class="chip ${cc}">${ct}</div>
+      <div style="flex:1"><div style="font-size:13px;font-weight:700">${k.isim}</div><div style="font-size:10px;color:var(--mut);font-family:'DM Mono',monospace">Ödedi: ${paidStr}</div></div>
+      <div class="chip ${cc}" style="font-size:10px">${balStr}</div>
       <span style="color:var(--mut);margin-left:6px;font-size:14px" id="arr${i}">▼</span>
     </div>
     <div id="pd${i}" style="display:none;padding:8px 0 4px">
-      ${masraflar.filter(e=>e.katilimci_id===k.id&&(!e.sahsi||e.katilimci_id===mySession?.katilimciId)).map(e=>`
-        <div onclick="openExpModal(${masraflar.indexOf(e)})" style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;cursor:pointer;transition:background .15s" onmouseover="this.style.background='var(--sf2)'" onmouseout="this.style.background=''">
+      ${masraflar.filter(e=>e.katilimci_id===k.id&&(!e.sahsi||e.katilimci_id===mySession?.katilimciId)).map(e=>{
+        const semb = getMasrafSembol(e);
+        return `<div onclick="openExpModal(${masraflar.indexOf(e)})" style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;cursor:pointer;transition:background .15s" onmouseover="this.style.background='var(--sf2)'" onmouseout="this.style.background=''">
           <span style="font-size:12px">${e.cat}</span>
           <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.aciklama}${e.sahsi?' 🙋':''}</div><div style="font-size:10px;color:var(--mut);font-family:'DM Mono',monospace">${e.tarih}</div></div>
-          <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--acc)">₺${fmt(e.amount)}</div>
-        </div>`).join('') || '<div style="font-size:12px;color:var(--mut);padding:8px;text-align:center">Masraf yok</div>'}
+          <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--acc)">${semb}${fmt(e.amount)}</div>
+        </div>`;
+      }).join('') || '<div style="font-size:12px;color:var(--mut);padding:8px;text-align:center">Masraf yok</div>'}
     </div>`;
   }).join('');
 
-  // Ödeme planı
+  // Ödeme planı - döviz bazında ayrı ayrı hesapla
   const sec = document.getElementById('ibanSection');
-  if(!total){sec.innerHTML=`<div class="empty" style="padding:14px"><p>Masraf eklenince görünür.</p></div>`;
-    document.getElementById('personDetailSection').innerHTML='';return;}
-
-  const balances = aktifK.map((k,i)=>({i,k,b:paid[i]-kisiPay[i]}));
-  const creditors = balances.filter(x=>x.b>0.009).sort((a,b)=>b.b-a.b);
-  const debtors   = balances.filter(x=>x.b<-0.009).sort((a,b)=>a.b-b.b);
-  const payments  = [];
-  const cBal = creditors.map(c=>({...c}));
-  for(const d of debtors.map(d=>({...d}))){
-    let rem=Math.abs(d.b);
-    for(const c of cBal){
-      if(rem<0.009) break;
-      if(c.b<0.009) continue;
-      const t=Math.min(rem,c.b);
-      payments.push({from:d,to:c,amount:t});
-      rem-=t; c.b-=t;
-    }
+  if(!ortakMasraf.length){
+    sec.innerHTML=`<div class="empty" style="padding:14px"><p>Masraf eklenince görünür.</p></div>`;
+    document.getElementById('personDetailSection').innerHTML='';
+    return;
   }
-  sec.innerHTML = payments.map(p=>{
+
+  let allPayments = [];
+  Object.keys(dovizGruplari).forEach(pb=>{
+    const semb = PARA_BIRIMLERI.find(p=>p.kod===pb)?.sembol||pb;
+    const pbBal = aktifK.map((k,i)=>({i,k,b:balances[i].bal[pb]||0}));
+    const creditors = pbBal.filter(x=>x.b>0.009).sort((a,b)=>b.b-a.b);
+    const debtors = pbBal.filter(x=>x.b<-0.009).sort((a,b)=>a.b-b.b);
+    const cBal = creditors.map(c=>({...c}));
+    for(const d of debtors.map(d=>({...d}))){
+      let rem=Math.abs(d.b);
+      for(const c of cBal){
+        if(rem<0.009) break;
+        if(c.b<0.009) continue;
+        const t=Math.min(rem,c.b);
+        allPayments.push({from:d,to:c,amount:t,semb,pb});
+        rem-=t; c.b-=t;
+      }
+    }
+  });
+
+  sec.innerHTML = allPayments.map(p=>{
     const iban = p.to.k.iban||'';
     return `<div class="icard" style="border-left:3px solid ${getColor(p.from.i)}">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
         <div style="width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;background:${getBg(p.from.i)};color:${getColor(p.from.i)}">${getInitial(p.from.k.isim)}</div>
         <div><div style="font-size:14px;font-weight:700">${p.from.k.isim}</div>
-        <div style="font-size:11px;color:var(--mut)">${fmtPara(p.amount)} → <span style="color:${getColor(p.to.i)}">${p.to.k.isim}</span>'e</div></div>
+        <div style="font-size:11px;color:var(--mut)">${p.semb}${fmt(p.amount)} → <span style="color:${getColor(p.to.i)}">${p.to.k.isim}</span>'e</div></div>
       </div>
       ${iban
         ?`<div class="iban-val">${iban}</div>
           <div style="display:flex;align-items:center;justify-content:space-between">
-            <span style="font-size:12px;color:var(--mut)">Gönder: <strong style="color:var(--red);font-family:'DM Mono',monospace">${fmtPara(p.amount)}</strong></span>
+            <span style="font-size:12px;color:var(--mut)">Gönder: <strong style="color:var(--red);font-family:'DM Mono',monospace">${p.semb}${fmt(p.amount)}</strong></span>
             <button class="copy-btn" onclick="copyIban(this,'${iban}')">📋 Kopyala</button>
           </div>`
         :`<div style="font-size:11px;color:var(--mut)">⚠️ ${p.to.k.isim} için IBAN girilmemiş.</div>`
