@@ -861,8 +861,10 @@ function renderSummary() {
     const byPb = {};
     ortakMasraf.forEach(e=>{
       const pb = e.para_birimi||'TRY';
-      const bolusturen = e.bolusturen&&e.bolusturen.length>0 ? e.bolusturen : aktifK.map(x=>x.id);
-      if(bolusturen.includes(k.id)) byPb[pb] = (byPb[pb]||0) + e.amount/bolusturen.length;
+      const bolusturen = e.bolusturen&&e.bolusturen.length>0 
+        ? e.bolusturen.map(x=>parseInt(x)) 
+        : aktifK.map(x=>x.id);
+      if(bolusturen.includes(parseInt(k.id))) byPb[pb] = (byPb[pb]||0) + e.amount/bolusturen.length;
     });
     return byPb;
   });
@@ -1002,8 +1004,8 @@ async function addExpense() {
   try{
     // Seçili bölüşenler yoksa herkesi ekle
     const bolusturen = seciliBolusturanlar.size > 0
-      ? [...seciliBolusturanlar]
-      : katilimcilar.filter(k=>k.durum!=='engellendi').map(k=>k.id);
+      ? [...seciliBolusturanlar].map(x=>parseInt(x))
+      : katilimcilar.filter(k=>k.durum!=='engellendi').map(k=>parseInt(k.id));
     const masrafPara = document.getElementById('fAmtPara')?.value || paraBirimi || 'TRY';
     const rows=await sbPost('masraflar',{
       trip_id:mySession.tripId, katilimci_id:katilimci.id,
