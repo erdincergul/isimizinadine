@@ -253,7 +253,16 @@ input::placeholder,textarea::placeholder{color:var(--mut)}
       <div id="whoRow" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px"></div>
       <div class="fgrid">
         <input class="ffull" type="text" id="fDesc" placeholder="Ne için? (akaryakıt, yemek...)">
-        <input type="number" id="fAmt" placeholder="₺ Tutar" step="0.01" min="0" inputmode="decimal">
+        <div style="display:flex;gap:4px">
+          <input type="number" id="fAmt" placeholder="Tutar" step="0.01" min="0" inputmode="decimal" style="flex:1">
+          <select id="fAmtPara" style="width:70px;background:var(--sf2);border:1px solid var(--bd);border-radius:10px;color:var(--txt);font-family:'DM Mono',monospace;font-size:13px;padding:11px 6px;outline:none;-webkit-appearance:none;text-align:center">
+            <option value="TRY">₺</option>
+            <option value="USD">$</option>
+            <option value="EUR">€</option>
+            <option value="GBP">£</option>
+            <option value="CHF">Fr</option>
+          </select>
+        </div>
         <select id="fCat">
           <option>⛽ Akaryakıt</option><option>🍽️ Yemek</option><option>🏨 Konaklama</option>
           <option>🎟️ Aktivite</option><option>🛒 Market</option><option>🅿️ Park/Otoban</option>
@@ -804,7 +813,7 @@ function renderExpList() {
         <div class="edesc">${e.cat} ${e.aciklama}${e.sahsi?' <span style="font-size:9px;background:#b8402a18;color:var(--red);border-radius:4px;padding:1px 5px">şahsi</span>':''}</div>
         <div class="emeta">${k?.isim||'?'} · ${e.tarih}${e.photo?' · 📷':''}</div>
       </div>
-      <div class="eamt">₺${fmt(e.amount)}</div>
+      <div class="eamt">${getMasrafSembol(e)}${fmt(e.amount)}</div>
       <button class="btn-del" onclick="event.stopPropagation();delExp(${e.id})">✕</button>
     </div>`;
   }).filter(Boolean).join('');
@@ -937,13 +946,18 @@ async function addExpense() {
     const bolusturen = seciliBolusturanlar.size > 0
       ? [...seciliBolusturanlar]
       : katilimcilar.filter(k=>k.durum!=='engellendi').map(k=>k.id);
+    const masrafPara = document.getElementById('fAmtPara')?.value || paraBirimi || 'TRY';
     const rows=await sbPost('masraflar',{
       trip_id:mySession.tripId, katilimci_id:katilimci.id,
-      aciklama, amount, cat, sahsi, photo, tarih, bolusturen
+      aciklama, amount, cat, sahsi, photo, tarih, bolusturen,
+      para_birimi: masrafPara
     });
     masraflar.push(rows[0]);
     document.getElementById('fDesc').value='';
     document.getElementById('fAmt').value='';
+    // Para birimini seyahat varsayılanına sıfırla
+    const fAmtPara = document.getElementById('fAmtPara');
+    if(fAmtPara) fAmtPara.value = paraBirimi||'TRY';
     clearPhoto();
     seciliBolusturanlar = new Set();
     renderBolusturanlar();
@@ -981,7 +995,7 @@ function openExpModal(idx) {
       </div>
       ${photoUrl?`<img src="${photoUrl}" class="modal-img">`:`<div style="text-align:center;padding:20px;color:var(--mut)"><div style="font-size:36px">📷</div><p style="font-size:12px;margin-top:6px">Fiş eklenmemiş</p></div>`}
       <div class="modal-info">
-        <div class="mir"><span class="mil">Tutar</span><span class="miv" style="color:var(--acc);font-family:'DM Mono',monospace">₺${fmt(e.amount)}</span></div>
+        <div class="mir"><span class="mil">Tutar</span><span class="miv" style="color:var(--acc);font-family:'DM Mono',monospace">${getMasrafSembol(e)}${fmt(e.amount)} ${e.para_birimi&&e.para_birimi!==paraBirimi?'<span style="font-size:10px;color:var(--mut)">('+e.para_birimi+')</span>':''}</span></div>
         <div class="mir"><span class="mil">Ödeyen</span><span class="miv">${k?.isim||'?'}</span></div>
         <div class="mir"><span class="mil">Kategori</span><span class="miv">${e.cat}</span></div>
         <div class="mir"><span class="mil">Tür</span><span class="miv">${e.sahsi?'🙋 Şahsi':'👥 Ortak'}</span></div>
@@ -2797,6 +2811,10 @@ function sync(s,t){document.getElementById('sdot').className='sdot '+s;document.
 function fmt(n){return n.toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function sembol(){return PARA_BIRIMLERI.find(p=>p.kod===paraBirimi)?.sembol||'₺';}
 function fmtPara(n){return sembol()+fmt(n);}
+function getMasrafSembol(e){
+  const pb = e.para_birimi||paraBirimi||'TRY';
+  return PARA_BIRIMLERI.find(p=>p.kod===pb)?.sembol||'₺';
+}
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
 
 function playNotifSound(type) {
