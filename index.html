@@ -241,6 +241,7 @@ input::placeholder,textarea::placeholder{color:var(--mut)}
   <button class="tab w5" onclick="goTab('yerler',this)">📍 Yerler</button>
   <button class="tab w5" onclick="goTab('butce',this)">🎯 Bütçe</button>
   <button class="tab w5" onclick="goTab('oyun',this)">🧠 Oyun</button>
+  <button class="tab w5" onclick="goTab('gorevler',this)">📋 Görevler</button>
 </div>
 
 <div class="main">
@@ -259,6 +260,11 @@ input::placeholder,textarea::placeholder{color:var(--mut)}
           <option>🎟️ Aktivite</option><option>🛒 Market</option><option>🅿️ Park/Otoban</option>
           <option>☕ Kafe</option><option>📦 Diğer</option>
         </select>
+      </div>
+      <div style="margin-bottom:8px">
+        <div class="slabel">👥 Kimler Bölüşecek?</div>
+        <div id="bolusturanRow" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px"></div>
+        <div style="font-size:10px;color:var(--mut)">💡 Seçilmezse tüm katılımcılar bölüşür</div>
       </div>
       <label id="sahsiLabel" style="display:flex;align-items:center;gap:10px;background:var(--sf2);border:1px solid var(--bd);border-radius:10px;padding:11px 14px;cursor:pointer;margin-bottom:8px" onclick="toggleSahsi()">
         <div id="sahsiCheck" style="width:20px;height:20px;border-radius:6px;border:2px solid var(--bd);background:var(--sf);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px"></div>
@@ -398,6 +404,21 @@ input::placeholder,textarea::placeholder{color:var(--mut)}
     <div id="oyunEkran"></div>
   </div>
 
+  <!-- GÖREVLER -->
+  <div id="p-gorevler" class="panel">
+    <div class="card">
+      <div class="ctitle">📋 Görev Ekle</div>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <input type="text" id="gorevText" placeholder="Görevi yazın... (örn: Yakıt almak)" style="flex:1">
+        <button onclick="addGorev()" style="background:var(--acc);border:none;color:#fff;padding:11px 14px;border-radius:10px;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer;flex-shrink:0">+</button>
+      </div>
+      <div style="font-size:11px;color:var(--mut);margin-bottom:8px">Sorumlu kişi:</div>
+      <div id="gorevKisiRow" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+    </div>
+    <div class="slabel">Görevler <span class="stag" id="gorevCnt">0</span></div>
+    <div id="gorevList"></div>
+  </div>
+
   <!-- AYARLAR -->
   <div id="p-ayarlar" class="panel">
     <div class="card">
@@ -415,6 +436,17 @@ input::placeholder,textarea::placeholder{color:var(--mut)}
         <button onclick="setTema('karanlık')" class="tema-btn" data-tema="karanlık" style="background:linear-gradient(135deg,#111,#1a1a1a);border:2px solid #333;border-radius:10px;padding:10px 4px;cursor:pointer;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:#eee">🖤 Karanlık</button>
         <button onclick="setTema('deniz')" class="tema-btn" data-tema="deniz" style="background:linear-gradient(135deg,#e8f4f8,#f5fbff);border:2px solid #b0d8e8;border-radius:10px;padding:10px 4px;cursor:pointer;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:#00293d">🌊 Deniz</button>
       </div>
+    </div>
+    <div class="card">
+      <div class="ctitle">💰 Para Birimi</div>
+      <p style="font-size:12px;color:var(--mut);margin-bottom:10px">Tüm harcamalar bu para biriminde gösterilir.</p>
+      <select id="paraBirimiSelect" onchange="saveParaBirimi(this.value)" style="width:100%;background:var(--sf2);border:1px solid var(--bd);border-radius:10px;color:var(--txt);font-family:'Syne',sans-serif;font-size:14px;padding:11px 14px;outline:none">
+        <option value="TRY">₺ Türk Lirası</option>
+        <option value="USD">$ Amerikan Doları</option>
+        <option value="EUR">€ Euro</option>
+        <option value="GBP">£ İngiliz Sterlini</option>
+        <option value="CHF">Fr İsviçre Frangı</option>
+      </select>
     </div>
     <div class="card">
       <div class="ctitle">🔑 Seyahat Bilgisi</div>
@@ -648,6 +680,8 @@ async function loadAll() {
       sbGet('notlar',`trip_id=eq.${tid}&order=created_at.asc`)
     ]);
     currentTrip = trips[0];
+    // Para birimini yükle
+    if(currentTrip?.para_birimi) paraBirimi = currentTrip.para_birimi;
     // Tüm listeyi admin için sakla
     tumKatilimcilar = kList;
     // Aktif listede engelliler yok
@@ -691,6 +725,7 @@ async function loadAll() {
 function renderAll() {
   renderHeader();
   renderWho();
+  renderBolusturanlar();
   renderExpList();
   if(document.getElementById('p-ozet').classList.contains('active')) renderSummary();
   if(document.getElementById('p-guzergah').classList.contains('active')) renderPlaces();
@@ -712,7 +747,7 @@ function getInitial(name) {
 function renderHeader() {
   const ortakMasraf = masraflar.filter(e=>!e.sahsi);
   const total = ortakMasraf.reduce((s,e)=>s+e.amount,0);
-  document.getElementById('hdrAmt').textContent = '₺'+fmt(total);
+  document.getElementById('hdrAmt').textContent = fmtPara(total);
   document.getElementById('hdrSub').textContent = (currentTrip?.isim||'') + ' · ' + (mySession?.name||'');
 }
 
@@ -736,6 +771,28 @@ function pickWhoById(id){
   const aktif = katilimcilar.filter(k=>k.durum!=='engellendi');
   whoIdx = aktif.findIndex(k=>k.id===id);
   renderWho();
+}
+
+let seciliBolusturanlar = new Set(); // Seçili bölüşenler
+
+function renderBolusturanlar() {
+  const row = document.getElementById('bolusturanRow');
+  if(!row) return;
+  const aktif = katilimcilar.filter(k=>k.durum!=='engellendi');
+  row.innerHTML = aktif.map((k,i)=>{
+    const secili = seciliBolusturanlar.has(k.id);
+    const color = getColor(i);
+    return `<button onclick="toggleBolusturan(${k.id})"
+      style="padding:6px 10px;border-radius:20px;border:1.5px solid ${secili?color:'var(--bd)'};background:${secili?color+'20':'var(--sf2)'};color:${secili?color:'var(--mut)'};font-family:'Syne',sans-serif;font-size:11px;font-weight:700;cursor:pointer">
+      ${getInitial(k.isim)} ${k.isim.split(' ')[0]}${secili?' ✓':''}
+    </button>`;
+  }).join('');
+}
+
+function toggleBolusturan(id) {
+  if(seciliBolusturanlar.has(id)) seciliBolusturanlar.delete(id);
+  else seciliBolusturanlar.add(id);
+  renderBolusturanlar();
 }
 
 function renderExpList() {
@@ -769,21 +826,29 @@ function renderSummary() {
   const ortakMasraf = masraflar.filter(e=>!e.sahsi);
   const n = aktifK.length || 1;
   const total = ortakMasraf.reduce((s,e)=>s+e.amount,0);
-  const per = total/n;
+  const per = total/n; // Eşit bölünme referansı için
 
-  document.getElementById('sumTotal').textContent = '₺'+fmt(total);
+  document.getElementById('sumTotal').textContent = fmtPara(total);
   document.getElementById('sumPer').textContent = '₺'+fmt(per)+' ('+n+' kişi)';
 
-  // Her kişinin ödediği (ortak)
+  // Her kişinin ödediği (ortak) ve bölüştürme payı
   const paid = aktifK.map(k=>ortakMasraf.filter(e=>e.katilimci_id===k.id).reduce((s,e)=>s+e.amount,0));
+  // Kişi başına düşen pay - bölüşen kişi sayısına göre
+  const kisiPay = aktifK.map((k,i)=>{
+    return ortakMasraf.reduce((s,e)=>{
+      const bolusturen = e.bolusturen && e.bolusturen.length>0 ? e.bolusturen : aktifK.map(x=>x.id);
+      if(bolusturen.includes(k.id)) return s + e.amount/bolusturen.length;
+      return s;
+    },0);
+  });
 
   document.getElementById('personRows').innerHTML = aktifK.map((k,i)=>{
     const bal=paid[i]-per;
     const cc=bal>0.009?'chip-pos':bal<-0.009?'chip-neg':'chip-zero';
-    const ct=bal>0.009?`+₺${fmt(bal)} alacaklı`:bal<-0.009?`-₺${fmt(Math.abs(bal))} borçlu`:'dengede';
+    const ct=bal>0.009?`+${fmtPara(bal)} alacaklı`:bal<-0.009?`-${fmtPara(Math.abs(bal))} borçlu`:'dengede';
     return `<div class="prow" onclick="togglePersonDetail(${i})">
       <div style="width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;background:${getBg(i)};color:${getColor(i)}">${getInitial(k.isim)}</div>
-      <div style="flex:1"><div style="font-size:13px;font-weight:700">${k.isim}</div><div style="font-size:10px;color:var(--mut);font-family:'DM Mono',monospace">Ödedi: ₺${fmt(paid[i])}</div></div>
+      <div style="flex:1"><div style="font-size:13px;font-weight:700">${k.isim}</div><div style="font-size:10px;color:var(--mut);font-family:'DM Mono',monospace">Ödedi: ${fmtPara(paid[i])}</div></div>
       <div class="chip ${cc}">${ct}</div>
       <span style="color:var(--mut);margin-left:6px;font-size:14px" id="arr${i}">▼</span>
     </div>
@@ -802,7 +867,7 @@ function renderSummary() {
   if(!total){sec.innerHTML=`<div class="empty" style="padding:14px"><p>Masraf eklenince görünür.</p></div>`;
     document.getElementById('personDetailSection').innerHTML='';return;}
 
-  const balances = aktifK.map((k,i)=>({i,k,b:paid[i]-per}));
+  const balances = aktifK.map((k,i)=>({i,k,b:paid[i]-kisiPay[i]}));
   const creditors = balances.filter(x=>x.b>0.009).sort((a,b)=>b.b-a.b);
   const debtors   = balances.filter(x=>x.b<-0.009).sort((a,b)=>a.b-b.b);
   const payments  = [];
@@ -823,12 +888,12 @@ function renderSummary() {
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
         <div style="width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;background:${getBg(p.from.i)};color:${getColor(p.from.i)}">${getInitial(p.from.k.isim)}</div>
         <div><div style="font-size:14px;font-weight:700">${p.from.k.isim}</div>
-        <div style="font-size:11px;color:var(--mut)">₺${fmt(p.amount)} → <span style="color:${getColor(p.to.i)}">${p.to.k.isim}</span>'e</div></div>
+        <div style="font-size:11px;color:var(--mut)">${fmtPara(p.amount)} → <span style="color:${getColor(p.to.i)}">${p.to.k.isim}</span>'e</div></div>
       </div>
       ${iban
         ?`<div class="iban-val">${iban}</div>
           <div style="display:flex;align-items:center;justify-content:space-between">
-            <span style="font-size:12px;color:var(--mut)">Gönder: <strong style="color:var(--red);font-family:'DM Mono',monospace">₺${fmt(p.amount)}</strong></span>
+            <span style="font-size:12px;color:var(--mut)">Gönder: <strong style="color:var(--red);font-family:'DM Mono',monospace">${fmtPara(p.amount)}</strong></span>
             <button class="copy-btn" onclick="copyIban(this,'${iban}')">📋 Kopyala</button>
           </div>`
         :`<div style="font-size:11px;color:var(--mut)">⚠️ ${p.to.k.isim} için IBAN girilmemiş.</div>`
@@ -879,14 +944,20 @@ async function addExpense() {
   }
 
   try{
+    // Seçili bölüşenler yoksa herkesi ekle
+    const bolusturen = seciliBolusturanlar.size > 0
+      ? [...seciliBolusturanlar]
+      : katilimcilar.filter(k=>k.durum!=='engellendi').map(k=>k.id);
     const rows=await sbPost('masraflar',{
       trip_id:mySession.tripId, katilimci_id:katilimci.id,
-      aciklama, amount, cat, sahsi, photo, tarih
+      aciklama, amount, cat, sahsi, photo, tarih, bolusturen
     });
     masraflar.push(rows[0]);
     document.getElementById('fDesc').value='';
     document.getElementById('fAmt').value='';
     clearPhoto();
+    seciliBolusturanlar = new Set();
+    renderBolusturanlar();
     // Şahsi sıfırla
     document.getElementById('sahsiCheck').textContent='';
     document.getElementById('sahsiCheck').style.background='var(--sf)';
@@ -1289,6 +1360,9 @@ function renderSettings(){
   }).join('');
 
   document.getElementById('katilimciList').innerHTML = listHTML;
+  // Para birimi seçimini güncelle
+  const pbSelect = document.getElementById('paraBirimiSelect');
+  if(pbSelect) pbSelect.value = paraBirimi;
   // Bütçe inputlarını doldur
   loadButce().then(()=>renderButceAyarInputs());
   // Belgeler ve acil kişileri yükle
@@ -1325,6 +1399,15 @@ async function removeKatilimci(id) {
     showToast('🚫 '+isim+' engellendi');
     renderSettings();
   } catch(e) { showToast('❌ Hata: '+e.message); console.error(e); }
+}
+
+async function saveParaBirimi(kod) {
+  paraBirimi = kod;
+  try {
+    await sbPatch('seyahatler',`id=eq.${mySession.tripId}`,{para_birimi:kod});
+    showToast('✅ Para birimi kaydedildi!');
+    renderAll();
+  } catch(e){ showToast('❌ '+e.message); }
 }
 
 async function saveMyIban(){
@@ -1591,8 +1674,8 @@ function renderButceDurum() {
         <div style="height:100%;border-radius:20px;background:${renk};width:${pct}%;transition:width .5s"></div>
       </div>
       <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--mut);font-family:'DM Mono',monospace">
-        <span>₺${fmt(toplamHarcama)} harcandı</span>
-        <span>₺${fmt(toplamButce)} toplam</span>
+        <span>${fmtPara(toplamHarcama)} harcandı</span>
+        <span>${fmtPara(toplamButce)} toplam</span>
       </div>
     </div>`;
   } else {
@@ -1635,7 +1718,7 @@ function renderButceDurum() {
           <div style="font-size:13px;font-weight:700">${k.label} ${katExp.length?`<span style="font-size:10px;color:var(--mut);font-weight:400">(${katExp.length} kalem)</span>`:''}</div>
           <div style="display:flex;align-items:center;gap:8px">
             <div style="text-align:right">
-              <div style="font-family:'DM Mono',monospace;font-size:13px;color:var(--acc)">₺${fmt(harcama)}</div>
+              <div style="font-family:'DM Mono',monospace;font-size:13px;color:var(--acc)">${fmtPara(harcama)}</div>
               ${limit>0
                 ? `<div style="font-size:10px;color:${kalan>=0?'var(--grn)':'var(--red)'};font-family:'DM Mono',monospace">${kalan>=0?'₺'+fmt(kalan)+' kaldı':'₺'+fmt(Math.abs(kalan))+' aşıldı'}</div>`
                 : '<div style="font-size:10px;color:var(--mut)">limit yok</div>'}
@@ -1646,7 +1729,7 @@ function renderButceDurum() {
         <div style="background:var(--sf2);border-radius:20px;height:8px;overflow:hidden">
           <div style="height:100%;border-radius:20px;background:${barColor};width:${pct}%;transition:width .5s"></div>
         </div>
-        ${limit>0?`<div style="font-size:10px;color:var(--mut);font-family:'DM Mono',monospace;margin-top:4px;text-align:right">₺${fmt(limit)} limit</div>`:''}
+        ${limit>0?`<div style="font-size:10px;color:var(--mut);font-family:'DM Mono',monospace;margin-top:4px;text-align:right">${fmtPara(limit)} limit</div>`:''}
       </div>
       <div id="${accId}" style="display:none;margin-top:10px;border-top:1px solid var(--bd);padding-top:8px">
         ${detaylar}
@@ -1744,6 +1827,8 @@ const ILLER = [...new Set(YERLER_DATA.map(y=>y.il))];
 let yerFilter = {il:'Tümü', tip:'hepsi'};
 
 function renderYerler() {
+  // Filter her açılışta sıfırla
+  yerFilter = {il:'Tümü', tip:'hepsi'};
   // Filter butonları
   const filterRow = document.getElementById('yerFilterRow');
   filterRow.innerHTML = `
@@ -1818,6 +1903,14 @@ async function addYerToRoute(btn) {
 let mekanlar = [];
 let selectedStar = 0;
 let tumKatilimcilar = []; // admin için tüm liste (engelliler dahil)
+let paraBirimi = 'TRY'; // Varsayılan para birimi
+const PARA_BIRIMLERI = [
+  {kod:'TRY', sembol:'₺', isim:'Türk Lirası'},
+  {kod:'USD', sembol:'$', isim:'Amerikan Doları'},
+  {kod:'EUR', sembol:'€', isim:'Euro'},
+  {kod:'GBP', sembol:'£', isim:'İngiliz Sterlini'},
+  {kod:'CHF', sembol:'Fr', isim:'İsviçre Frangı'},
+];
 
 function setMekanStar(s) {
   selectedStar = s;
@@ -2694,6 +2787,108 @@ function stopOyunSync() {
 
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━
+// GÖREVLER
+// ━━━━━━━━━━━━━━━━━━━━━━━━
+let gorevler = [];
+let gorevSecilenKisi = null;
+
+async function renderGorevler() {
+  try {
+    gorevler = await sbGet('gorevler', `trip_id=eq.${mySession.tripId}&order=created_at.asc`);
+  } catch(e){ gorevler=[]; }
+
+  document.getElementById('gorevCnt').textContent = gorevler.length;
+
+  // Kişi seçim butonları
+  const kisiRow = document.getElementById('gorevKisiRow');
+  if(kisiRow) {
+    kisiRow.innerHTML = katilimcilar.filter(k=>k.durum!=='engellendi').map((k,i)=>{
+      const secili = gorevSecilenKisi===k.id;
+      const color = getColor(i);
+      return `<button onclick="gorevKisiSec(${k.id})"
+        style="padding:6px 10px;border-radius:20px;border:1.5px solid ${secili?color:'var(--bd)'};background:${secili?color+'20':'var(--sf2)'};color:${secili?color:'var(--mut)'};font-family:'Syne',sans-serif;font-size:11px;font-weight:700;cursor:pointer">
+        ${getInitial(k.isim)} ${k.isim.split(' ')[0]}${secili?' ✓':''}
+      </button>`;
+    }).join('');
+  }
+
+  // Görev listesi
+  const list = document.getElementById('gorevList');
+  if(!gorevler.length) {
+    list.innerHTML = '<div class="empty"><div class="ico">📋</div><p>Henüz görev yok.<br>Ekip üyelerine görev atayın!</p></div>';
+    return;
+  }
+
+  // Kişiye göre grupla
+  const grouped = {};
+  gorevler.forEach(g=>{
+    const key = g.katilimci_id || 0;
+    if(!grouped[key]) grouped[key]=[];
+    grouped[key].push(g);
+  });
+
+  list.innerHTML = Object.entries(grouped).map(([kid,gList])=>{
+    const k = katilimcilar.find(x=>x.id===parseInt(kid));
+    const kIdx = katilimcilar.findIndex(x=>x.id===parseInt(kid));
+    const color = k ? getColor(kIdx) : 'var(--mut)';
+    return `<div style="background:var(--sf);border:1px solid var(--bd);border-radius:12px;padding:14px;margin-bottom:10px;border-left:3px solid ${color}">
+      <div style="font-size:12px;font-weight:700;color:${color};margin-bottom:10px">${k?k.isim:'Atanmamış'}</div>
+      ${gList.map(g=>`
+        <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--sf2)">
+          <div onclick="toggleGorevDurum(${g.id},'${g.durum}')" 
+            style="width:22px;height:22px;border-radius:50%;border:2px solid ${g.durum==='tamamlandi'?'var(--grn)':'var(--bd)'};background:${g.durum==='tamamlandi'?'var(--grn)':'transparent'};display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:#fff;font-size:12px">
+            ${g.durum==='tamamlandi'?'✓':''}
+          </div>
+          <div style="flex:1;font-size:13px;${g.durum==='tamamlandi'?'text-decoration:line-through;color:var(--mut)':''}">${g.gorev}</div>
+          ${g.katilimci_id===mySession?.katilimciId||mySession?.rol==='admin'
+            ?`<button onclick="delGorev(${g.id})" class="btn-del">✕</button>`:''}
+        </div>`).join('')}
+    </div>`;
+  }).join('');
+}
+
+function gorevKisiSec(id) {
+  gorevSecilenKisi = gorevSecilenKisi===id ? null : id;
+  renderGorevler();
+}
+
+async function addGorev() {
+  const gorev = document.getElementById('gorevText').value.trim();
+  if(!gorev){showToast('⚠️ Görev yazın!');return;}
+  try {
+    const rows = await sbPost('gorevler',{
+      trip_id:mySession.tripId,
+      katilimci_id: gorevSecilenKisi||null,
+      gorev,
+      durum:'bekliyor'
+    });
+    gorevler.push(rows[0]);
+    document.getElementById('gorevText').value='';
+    gorevSecilenKisi=null;
+    renderGorevler();
+    showToast('📋 Görev eklendi!');
+  } catch(e){showToast('❌ '+e.message);}
+}
+
+async function toggleGorevDurum(id, mevcutDurum) {
+  const yeniDurum = mevcutDurum==='tamamlandi'?'bekliyor':'tamamlandi';
+  try {
+    await sbPatch('gorevler',`id=eq.${id}`,{durum:yeniDurum});
+    const g = gorevler.find(x=>x.id===id);
+    if(g) g.durum=yeniDurum;
+    renderGorevler();
+    if(yeniDurum==='tamamlandi') showToast('✅ Görev tamamlandı!');
+  } catch(e){showToast('❌ '+e.message);}
+}
+
+async function delGorev(id) {
+  if(!confirm('Bu görevi silmek istediğinize emin misiniz?')) return;
+  await sbDelete('gorevler',`id=eq.${id}`);
+  gorevler=gorevler.filter(g=>g.id!==id);
+  renderGorevler();
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━
 // TEMA
 // ━━━━━━━━━━━━━━━━━━━━━━━━
 function setTema(tema) {
@@ -2725,6 +2920,7 @@ function goTabByName(name) {
   if(name==='ayarlar') renderSettings();
   if(name==='butce') renderButce();
   if(name==='oyun') initOyun();
+  if(name==='gorevler') renderGorevler();
   if(name==='yerler') renderYerler();
 }
 
@@ -2736,6 +2932,7 @@ function goTab(name,btn){
   if(name==='ozet') renderSummary();
   if(name==='butce') renderButce();
   if(name==='oyun') initOyun();
+  if(name==='gorevler') renderGorevler();
   if(name==='guzergah') renderPlaces();
   if(name==='notlar') renderNotes();
   if(name==='ayarlar') renderSettings();
@@ -2747,6 +2944,8 @@ function goTab(name,btn){
 function closeModal(){document.getElementById('modal').style.display='none';document.getElementById('modal').innerHTML='';}
 function sync(s,t){document.getElementById('sdot').className='sdot '+s;document.getElementById('stxt').textContent=t;}
 function fmt(n){return n.toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function sembol(){return PARA_BIRIMLERI.find(p=>p.kod===paraBirimi)?.sembol||'₺';}
+function fmtPara(n){return sembol()+fmt(n);}
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
 
 function playNotifSound(type) {
