@@ -77,7 +77,7 @@ input::placeholder,textarea::placeholder{color:var(--mut)}
 .btn-del{background:none;border:none;color:var(--mut);cursor:pointer;font-size:14px;padding:4px 8px;border-radius:6px;flex-shrink:0}
 .btn-reset{width:100%;padding:10px;background:none;color:var(--red);border:1px solid #b8402a35;border-radius:10px;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer}
 
-.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.fgrid{display:grid;grid-template-columns:1fr 80px 1fr;gap:8px;margin-bottom:8px}
 .ffull{grid-column:1/-1}
 
 /* KATILIMCIlar */
@@ -253,16 +253,14 @@ input::placeholder,textarea::placeholder{color:var(--mut)}
       <div id="whoRow" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px"></div>
       <div class="fgrid">
         <input class="ffull" type="text" id="fDesc" placeholder="Ne için? (akaryakıt, yemek...)">
-        <div style="display:flex;gap:4px">
-          <input type="number" id="fAmt" placeholder="Tutar" step="0.01" min="0" inputmode="decimal" style="flex:1">
-          <select id="fAmtPara" style="width:70px;background:var(--sf2);border:1px solid var(--bd);border-radius:10px;color:var(--txt);font-family:'DM Mono',monospace;font-size:13px;padding:11px 6px;outline:none;-webkit-appearance:none;text-align:center">
-            <option value="TRY">₺</option>
-            <option value="USD">$</option>
-            <option value="EUR">€</option>
-            <option value="GBP">£</option>
-            <option value="CHF">Fr</option>
-          </select>
-        </div>
+        <input type="number" id="fAmt" placeholder="Tutar" step="0.01" min="0" inputmode="decimal">
+        <select id="fAmtPara" style="background:var(--sf2);border:1px solid var(--bd);border-radius:10px;color:var(--txt);font-family:'DM Mono',monospace;font-size:13px;padding:11px 6px;outline:none;-webkit-appearance:none;text-align:center;width:100%">
+          <option value="TRY">₺ TL</option>
+          <option value="USD">$ USD</option>
+          <option value="EUR">€ EUR</option>
+          <option value="GBP">£ GBP</option>
+          <option value="CHF">Fr CHF</option>
+        </select>
         <select id="fCat">
           <option>⛽ Akaryakıt</option><option>🍽️ Yemek</option><option>🏨 Konaklama</option>
           <option>🎟️ Aktivite</option><option>🛒 Market</option><option>🅿️ Park/Otoban</option>
